@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <tee_internal_api.h>
 #include <tee_internal_api_extensions.h>
+#include <sanitize_array_index.h>
 
 #include "handle.h"
 
@@ -18,6 +19,14 @@
  * noticable overhead on large databases.
  */
 #define HANDLE_DB_INITIAL_MAX_PTRS	4
+
+/*
+ * Handles are uint32_t value. 0 denotes an invalid handle. Max return value
+ * is below UINT32_MAX / 2 which relates to INT32_MAX. This limitation is due
+ * the internal handlings of handle as signed value which are not allowed to
+ * be negative design.
+ */
+#define HANDLE_MAX		(UINT32_MAX / 2)
 
 void handle_db_destroy(struct handle_db *db)
 {
@@ -30,9 +39,9 @@ void handle_db_destroy(struct handle_db *db)
 
 uint32_t handle_get(struct handle_db *db, void *ptr)
 {
-	uint32_t n;
+	ssize_t n;
 	void *p;
-	uint32_t new_max_ptrs;
+	ssize_t new_max_ptrs;
 
 	if (!db || !ptr)
 		return 0;
@@ -41,7 +50,7 @@ uint32_t handle_get(struct handle_db *db, void *ptr)
 	for (n = 1; n < db->max_ptrs; n++) {
 		if (!db->ptrs[n]) {
 			db->ptrs[n] = ptr;
-			return n;
+			return (uint32_t)n;
 		}
 	}
 
@@ -51,7 +60,7 @@ uint32_t handle_get(struct handle_db *db, void *ptr)
 	else
 		new_max_ptrs = HANDLE_DB_INITIAL_MAX_PTRS;
 
-	if (new_max_ptrs > (UINT32_MAX / 2))
+	if (new_max_ptrs > HANDLE_MAX)
 		return 0;
 
 	p = TEE_Realloc(db->ptrs, new_max_ptrs * sizeof(void *));
@@ -64,46 +73,29 @@ uint32_t handle_get(struct handle_db *db, void *ptr)
 
 	/* Since n stopped at db->max_ptrs there is an empty location there */
 	db->ptrs[n] = ptr;
-	return n;
-}
-
-/*
- * Protect from speculative access based on out bound handle values:
- * Generate a validation mask from signed difference from max valid handle
- * value to argument handle value:
- * - out bound handle values generate a null mask.
- * - handle values that can be seen as negative index generate a null mask.
- * This scheme expects value 0 is an invalid handle value and should
- * always return an invalid reference: here always a NULL reference.
- */
-static size_t guard_handle(struct handle_db *db, uint32_t handle)
-{
-	uint32_t mask_neg = ((int32_t)handle) >> (sizeof(handle) * 8 - 1);
-	uint32_t udiff = db->max_ptrs - handle;
-	int32_t diff = ((int32_t)udiff) >> (sizeof(udiff) * 8 - 1);
-	uint32_t mask_ovf = diff;
-
-	return handle & ~mask_ovf & ~mask_neg;
+	return (uint32_t)n;
 }
 
 void *handle_put(struct handle_db *db, uint32_t handle)
 {
-	uint32_t index;
+	ssize_t idx = (long int)handle;
 	void *p;
 
 	if (!db)
 		return NULL;
 
-	index = guard_handle(db, handle);
-	p = db->ptrs[index];
-	db->ptrs[index] = NULL;
+	idx = sanitize_array_signed_index_nospec(idx, db->max_ptrs);
+	p = db->ptrs[idx];
+	db->ptrs[idx] = NULL;
 	return p;
 }
 
 void *handle_lookup(struct handle_db *db, uint32_t handle)
 {
+	ssize_t idx = (long int)handle;
+
 	if (!db)
 		return NULL;
 
-	return db->ptrs[guard_handle(db, handle)];
+	return db->ptrs[sanitize_array_signed_index_nospec(idx, db->max_ptrs)];
 }

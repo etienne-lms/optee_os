@@ -20,3 +20,5 @@ cflags-arm32_aeabi_softfloat.c-y += -Wno-missing-declarations
 subdirs-$(CFG_ARM32_$(sm)) += softfloat
 endif
 endif
+
+srcs-y += sanitize_array_index.S
