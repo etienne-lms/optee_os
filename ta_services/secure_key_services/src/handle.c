@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <tee_internal_api.h>
 #include <tee_internal_api_extensions.h>
