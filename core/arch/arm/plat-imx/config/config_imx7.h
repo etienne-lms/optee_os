@@ -10,8 +10,10 @@
 
 #include <imx-regs.h>
 
-#ifndef CFG_UART_BASE
-#define CFG_UART_BASE	(UART1_BASE)
+#ifdef CFG_UART_BASE
+#define CONSOLE_UART_BASE	CFG_UART_BASE
+#else
+#define CONSOLE_UART_BASE	UART1_BASE
 #endif
 
 #ifndef CFG_DDR_SIZE
@@ -21,13 +23,12 @@
 #define DRAM0_BASE		0x80000000
 #define DRAM0_SIZE		CFG_DDR_SIZE
 
-/* Location of trusted dram */
-#define TZDRAM_BASE		(DRAM0_BASE + CFG_DDR_SIZE - 32 * 1024 * 1024)
-#define TZDRAM_SIZE		(30 * 1024 * 1024)
+#define TZDRAM_SIZE		(32 * 1024 * 1024 - TEE_SHMEM_SIZE)
+#define TZDRAM_BASE		(DRAM0_BASE + (CFG_DDR_SIZE - \
+					TZDRAM_SIZE - TEE_SHMEM_SIZE))
 
-/* Full GlobalPlatform test suite requires TEE_SHMEM_SIZE to be at least 2MB */
 #define TEE_SHMEM_START		(TZDRAM_BASE + TZDRAM_SIZE)
-#define TEE_SHMEM_SIZE		0x200000
+#define TEE_SHMEM_SIZE		CFG_SHMEM_SIZE
 
 #define TEE_RAM_VA_SIZE		(1024 * 1024)
 
@@ -51,7 +52,5 @@
 #else
 #define TEE_LOAD_ADDR		TEE_RAM_START
 #endif
-
-#define CONSOLE_UART_BASE	(CFG_UART_BASE)
 
 #endif /*__CONFIG_IMX7_H*/
