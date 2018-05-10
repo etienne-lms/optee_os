@@ -367,7 +367,7 @@ bool attributes_match_reference(struct sks_attrs_head *candidate,
 	for (count = 0; count < ref->blobs_count; count++) {
 		struct sks_ref sks_ref;
 		void *found;
-		uint32_t size;
+		size_t size;
 
 		TEE_MemMove(&sks_ref, ref_attr, sizeof(sks_ref));
 

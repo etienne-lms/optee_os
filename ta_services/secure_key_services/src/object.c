@@ -358,7 +358,7 @@ static uint32_t token_obj_matches_reference(struct sks_attrs_head *req_attrs,
 	TEE_ObjectHandle hdl;
 	TEE_ObjectInfo info;
 	struct sks_attrs_head *attr = NULL;
-	size_t read_bytes;
+	uint32_t read_bytes;
 
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
 					uuid, sizeof(TEE_UUID),
