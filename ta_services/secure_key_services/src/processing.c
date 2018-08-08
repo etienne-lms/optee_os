@@ -482,6 +482,7 @@ uint32_t entry_generate_key_pair(uintptr_t teesess,
 	uint32_t pubkey_handle;
 	uint32_t privkey_handle;
 	uint32_t *hdl_ptr;
+	uint32_t cka_id;
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
@@ -542,6 +543,11 @@ uint32_t entry_generate_key_pair(uintptr_t teesess,
 
 	TEE_Free(template);
 	template = NULL;
+
+	/* Generate CKA_ID for keys */
+	TEE_GenerateRandom(&cka_id, sizeof(cka_id));
+	generate_id(&pub_head, &cka_id);
+	generate_id(&priv_head, &cka_id);
 
 	/* Check created object against processing and token state */
 	rv = check_created_attrs(pub_head, priv_head);

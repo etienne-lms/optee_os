@@ -1485,3 +1485,20 @@ bool object_is_private(struct sks_attrs_head *head)
 
 	return false;
 }
+
+uint32_t generate_id(struct sks_attrs_head **attrs, uint32_t *set_id) {
+	uint32_t rv;
+	uint32_t id;
+
+	/* Check if SKS_CKA_ID is already present */
+	rv = get_attribute(*attrs, SKS_CKA_ID, NULL, NULL);
+	if (rv != SKS_NOT_FOUND)
+		return SKS_OK;
+	
+	/* Generate 32 bit ID */
+	if (!set_id)
+		TEE_GenerateRandom(&id, sizeof(id));
+	else id = *set_id;
+	rv = add_attribute(attrs, SKS_CKA_ID, &id, sizeof(id));
+	return rv;
+}

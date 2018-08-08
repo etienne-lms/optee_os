@@ -160,4 +160,14 @@ bool object_is_private(struct sks_attrs_head *head);
 void pkcs11_max_min_key_size(uint32_t key_type, uint32_t *max_key_size,
 			     uint32_t *min_key_size, bool bit_size_only);
 
+/*
+ * Generate CKA_ID, for generated keys
+ * If set_id is not NULL, generate random value for id,
+ * otherwise use the value pointed by set_id
+ * TODO maybe check if other tokens have the same id, so we don't
+ * get the same id for unrelated objects, although as far as I can tell
+ * this is not required by the standard
+ */
+uint32_t generate_id(struct sks_attrs_head **attrs, uint32_t *set_id);
+
 #endif /*__PKCS11_ATTRIBUTE_H*/

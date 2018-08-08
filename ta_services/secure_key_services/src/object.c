@@ -521,11 +521,15 @@ uint32_t entry_find_objects_init(uintptr_t tee_session, TEE_Param *ctrl,
 		uint32_t obj_handle;
 		uint32_t *handles;
 
-		rv = token_obj_matches_ref(req_attrs, obj);
-		if (rv == SKS_NOT_FOUND)
-			continue;
-		if (rv != SKS_OK)
-			goto bail;
+		/* If there are no attributes specified, we return
+		 * every object */
+		if (req_attrs->attrs_count) {
+			rv = token_obj_matches_ref(req_attrs, obj);
+			if (rv == SKS_NOT_FOUND)
+				continue;
+			if (rv != SKS_OK)
+				goto bail;
+		}
 
 		rv = check_access_attrs_against_token(session, obj->attributes);
 		if (rv)
@@ -672,4 +676,74 @@ uint32_t entry_find_objects_final(uintptr_t tee_session, TEE_Param *ctrl,
 	release_session_find_obj_context(session);
 
 	return SKS_OK;
+}
+
+/*
+ * Entry for command SKS_CMD_GET_ATTRIBUTE_VALUE
+ */
+uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
+				   TEE_Param *in, TEE_Param *out)
+{
+	uint32_t rv;
+	struct serialargs ctrlargs;
+	uint32_t session_handle;
+	struct pkcs11_session *session;
+	struct sks_object_head *template = NULL;
+	struct sks_object *obj = NULL;
+	uint32_t object_handle;
+	char *cur;
+	size_t len;
+	char *end;
+
+	if (!ctrl || in || !out)
+		return SKS_BAD_PARAM;
+
+	serialargs_init(&ctrlargs, ctrl->memref.buffer, ctrl->memref.size);
+
+	rv = serialargs_get(&ctrlargs, &session_handle, sizeof(uint32_t));
+	if (rv)
+		return rv;
+
+	rv = serialargs_get(&ctrlargs, &object_handle, sizeof(uint32_t));
+	if (rv)
+		return rv;
+
+	rv = serialargs_alloc_get_attributes(&ctrlargs, &template);
+	if (rv)
+		return rv;
+
+	session = sks_handle2session(session_handle, tee_session);
+	if (!session) {
+		rv = SKS_CKR_SESSION_HANDLE_INVALID;
+		goto bail;
+	}
+
+	obj = sks_handle2object(object_handle, session);
+	if (!obj)
+		return SKS_BAD_PARAM;
+
+	/* iterate over attributes and set their values */
+	cur = (char *)template + sizeof(struct sks_object_head);
+	end = cur + template->attrs_size;
+
+	for (; cur < end; cur += len) {
+		struct sks_attribute_head *cli_ref =
+			(struct sks_attribute_head *)(void *)cur;
+		len = sizeof(*cli_ref) + cli_ref->size;
+
+		rv = get_attribute(obj->attributes, cli_ref->id,
+				   cli_ref->size ? cli_ref->data : NULL,
+				   &(cli_ref->size));
+	}
+	
+	/* Move updated template to out buffer */
+	TEE_MemMove(out->memref.buffer, template, out->memref.size);
+
+	TEE_Free(template);
+	template = NULL;
+
+	return SKS_OK;
+
+bail:
+	return SKS_ERROR;
 }
