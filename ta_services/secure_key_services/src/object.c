@@ -694,6 +694,9 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	char *cur;
 	size_t len;
 	char *end;
+	bool attr_sensitive = 0;
+	bool attr_type_invalid = 0;
+	bool buffer_too_small = 0;
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
@@ -723,6 +726,30 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 		return SKS_BAD_PARAM;
 
 	/* iterate over attributes and set their values */
+	/*
+	 * 1. If the specified attribute (i.e., the attribute specified by the
+	 * type field) for the object cannot be revealed because the object is
+	 * sensitive or unextractable, then the ulValueLen field in that triple
+	 * is modified to hold the value CK_UNAVAILABLE_INFORMATION.
+	 *
+	 * 2. Otherwise, if the specified value for the object is invalid (the
+	 * object does not possess such an attribute), then the ulValueLen field
+	 * in that triple is modified to hold the value
+	 * CK_UNAVAILABLE_INFORMATION.
+	 * 
+	 * 3. Otherwise, if the pValue field has the value NULL_PTR, then the
+	 * ulValueLen field is modified to hold the exact length of the
+	 * specified attribute for the object.
+	 *
+	 * 4. Otherwise, if the length specified in ulValueLen is large enough
+	 * to hold the value of the specified attribute for the object, then
+	 * that attribute is copied into the buffer located at pValue, and the
+	 * ulValueLen field is modified to hold the exact length of the
+	 * attribute.
+	 *
+	 * 5. Otherwise, the ulValueLen field is modified to hold the value
+	 * CK_UNAVAILABLE_INFORMATION.
+	 */
 	cur = (char *)template + sizeof(struct sks_object_head);
 	end = cur + template->attrs_size;
 
@@ -731,10 +758,46 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 			(struct sks_attribute_head *)(void *)cur;
 		len = sizeof(*cli_ref) + cli_ref->size;
 
+		/* check 1. */
+		if (!attribute_is_exportable(cli_ref, obj)) {
+			cli_ref->size = CK_UNAVAILABLE_INFORMATION;
+			attr_sensitive = 1;
+		}
+
+		/*
+		 * We assume that if size is 0, pValue was NULL, so we return
+		 * the size of the required buffer for it (3., 4.)
+		 */
 		rv = get_attribute(obj->attributes, cli_ref->id,
 				   cli_ref->size ? cli_ref->data : NULL,
 				   &(cli_ref->size));
+		/* 2. */
+		if (rv == SKS_NOT_FOUND) {
+			cli_ref->size = CK_UNAVAILABLE_INFORMATION;
+			attr_type_invalid = 1;
+		}
+		if (rv == SKS_SHORT_BUFFER)
+			buffer_too_small = 1;
 	}
+
+	/*
+	 * If case 1 applies to any of the requested attributes, then the call
+	 * should return the value CKR_ATTRIBUTE_SENSITIVE. If case 2 applies to
+	 * any of the requested attributes, then the call should return the
+	 * value CKR_ATTRIBUTE_TYPE_INVALID. If case 5 applies to any of the
+	 * requested attributes, then the call should return the value
+	 * CKR_BUFFER_TOO_SMALL. As usual, if more than one of these error codes
+	 * is applicable, Cryptoki may return any of them. Only if none of them
+	 * applies to any of the requested attributes will CKR_OK be returned.
+	 */
+
+	rv = SKS_OK;
+	if (attr_sensitive)
+		rv = SKS_CKR_ATTRIBUTE_SENSITIVE;
+	if (attr_type_invalid)
+		rv = SKS_CKR_ATTRIBUTE_TYPE_INVALID;
+	if (buffer_too_small)
+		rv = SKS_CKR_BUFFER_TOO_SMALL;
 	
 	/* Move updated template to out buffer */
 	TEE_MemMove(out->memref.buffer, template, out->memref.size);
@@ -742,8 +805,6 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	TEE_Free(template);
 	template = NULL;
 
-	return SKS_OK;
-
 bail:
-	return SKS_ERROR;
+	return rv;
 }

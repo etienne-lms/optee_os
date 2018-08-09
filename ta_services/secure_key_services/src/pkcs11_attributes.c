@@ -1502,3 +1502,33 @@ uint32_t generate_id(struct sks_attrs_head **attrs, uint32_t *set_id) {
 	rv = add_attribute(attrs, SKS_CKA_ID, &id, sizeof(id));
 	return rv;
 }
+
+bool attribute_is_exportable(struct sks_attribute_head *req_attr,
+			     struct sks_object *obj) {
+
+	uint8_t boolval;
+	size_t boolsize = sizeof(boolval);
+	uint32_t rv;
+
+	switch (req_attr->id) {
+	case SKS_CKA_PRIVATE_EXPONENT:
+	case SKS_CKA_PRIME_1:
+	case SKS_CKA_PRIME_2:
+	case SKS_CKA_EXPONENT_1:
+	case SKS_CKA_EXPONENT_2:
+	case SKS_CKA_COEFFICIENT:
+		boolsize = sizeof(boolval);
+		rv = get_attribute(obj->attributes, SKS_CKA_EXTRACTABLE,
+				   &boolval, &boolsize);
+		if (rv || boolval == false)
+			return false;
+
+		boolsize = sizeof(boolval);
+		rv = get_attribute(obj->attributes, SKS_CKA_SENSITIVE,
+				   &boolval, &boolsize);
+		if (rv || boolval == true)
+			return false;
+	default:
+		return true;
+	}
+}

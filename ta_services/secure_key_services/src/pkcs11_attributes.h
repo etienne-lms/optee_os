@@ -11,6 +11,8 @@
 
 #include "serializer.h"
 
+#define CK_UNAVAILABLE_INFORMATION (~0UL)
+
 /*
  * PKCS#11 directives on object attributes.
  * Those with a '*' are optional, other must be defined, either by caller
@@ -159,6 +161,9 @@ bool object_is_private(struct sks_attrs_head *head);
 
 void pkcs11_max_min_key_size(uint32_t key_type, uint32_t *max_key_size,
 			     uint32_t *min_key_size, bool bit_size_only);
+
+bool attribute_is_exportable(struct sks_attribute_head *req_attr,
+			     struct sks_object *obj);
 
 /*
  * Generate CKA_ID, for generated keys
