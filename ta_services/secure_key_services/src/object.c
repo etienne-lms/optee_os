@@ -725,6 +725,12 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	if (!obj)
 		return SKS_BAD_PARAM;
 
+	rv = check_access_attrs_against_token(session, obj->attributes);
+	if (rv) {
+		rv = SKS_CKR_OBJECT_HANDLE_INVALID;
+		goto bail;
+	}
+
 	/* iterate over attributes and set their values */
 	/*
 	 * 1. If the specified attribute (i.e., the attribute specified by the
