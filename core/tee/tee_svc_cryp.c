@@ -3314,6 +3314,7 @@ TEE_Result syscall_asymm_operate(unsigned long state,
 		}
 		break;
 
+	case TEE_ALG_RSASSA_PKCS1_V1_5:
 	case TEE_ALG_RSASSA_PKCS1_V1_5_MD5:
 	case TEE_ALG_RSASSA_PKCS1_V1_5_SHA1:
 	case TEE_ALG_RSASSA_PKCS1_V1_5_SHA224:

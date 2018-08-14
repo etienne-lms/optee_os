@@ -48,6 +48,7 @@ bool processing_is_tee_asymm(uint32_t proc_id)
 }
 
 static uint32_t sks2tee_algorithm(uint32_t *tee_id,
+			      enum processing_func __maybe_unused function,
 			      struct sks_attribute_head *proc_params,
 			      struct sks_object *obj)
 {
@@ -138,6 +139,11 @@ static uint32_t sks2tee_algorithm(uint32_t *tee_id,
 		break;
 	}
 
+	if (*tee_id == TEE_ALG_RSAES_PKCS1_V1_5 &&
+		(function == SKS_FUNCTION_SIGN ||
+		 function == SKS_FUNCTION_VERIFY))
+		*tee_id = TEE_ALG_RSASSA_PKCS1_V1_5;
+
 	return rv;
 }
 
@@ -195,7 +201,7 @@ static uint32_t allocate_tee_operation(struct pkcs11_session *session,
 
 	assert(session->processing->tee_op_handle == TEE_HANDLE_NULL);
 
-	if (sks2tee_algorithm(&algo, proc_params, obj))
+	if (sks2tee_algorithm(&algo, function, proc_params, obj))
 		return SKS_FAILED;
 
 	sks2tee_mode(&mode, function);
