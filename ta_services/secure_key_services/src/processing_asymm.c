@@ -96,6 +96,11 @@ static uint32_t sks2tee_algorithm(uint32_t *tee_id,
 		}
 	}
 
+	if (*tee_id == TEE_ALG_RSAES_PKCS1_V1_5 &&
+		(function == SKS_FUNCTION_SIGN ||
+		 function == SKS_FUNCTION_VERIFY))
+		*tee_id = TEE_ALG_RSASSA_PKCS1_V1_5;
+
 	switch (proc_params->id) {
 	case SKS_CKM_RSA_X_509:
 	case SKS_CKM_RSA_9796:
@@ -138,11 +143,6 @@ static uint32_t sks2tee_algorithm(uint32_t *tee_id,
 		rv = SKS_OK;
 		break;
 	}
-
-	if (*tee_id == TEE_ALG_RSAES_PKCS1_V1_5 &&
-		(function == SKS_FUNCTION_SIGN ||
-		 function == SKS_FUNCTION_VERIFY))
-		*tee_id = TEE_ALG_RSASSA_PKCS1_V1_5;
 
 	return rv;
 }

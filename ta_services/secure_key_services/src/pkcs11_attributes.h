@@ -11,8 +11,6 @@
 
 #include "serializer.h"
 
-#define CK_UNAVAILABLE_INFORMATION (~0UL)
-
 /*
  * PKCS#11 directives on object attributes.
  * Those with a '*' are optional, other must be defined, either by caller
