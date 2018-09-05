@@ -521,8 +521,10 @@ uint32_t entry_find_objects_init(uintptr_t tee_session, TEE_Param *ctrl,
 		uint32_t obj_handle;
 		uint32_t *handles;
 
-		/* If there are no attributes specified, we return
-		 * every object */
+		/*
+		 * If there are no attributes specified, we return
+		 * every object
+		 */
 		if (req_attrs->attrs_count) {
 			rv = token_obj_matches_ref(req_attrs, obj);
 			if (rv == SKS_NOT_FOUND)
@@ -722,8 +724,10 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	}
 
 	obj = sks_handle2object(object_handle, session);
-	if (!obj)
-		return SKS_BAD_PARAM;
+	if (!obj) {
+		rv = SKS_BAD_PARAM;
+		goto bail;
+	}
 
 	rv = check_access_attrs_against_token(session, obj->attributes);
 	if (rv) {
@@ -783,8 +787,12 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 			cli_ref->size = SKS_CK_UNAVAILABLE_INFORMATION;
 			attr_type_invalid = 1;
 		}
-		if (rv == SKS_SHORT_BUFFER)
+		else if (rv == SKS_SHORT_BUFFER)
 			buffer_too_small = 1;
+		else if (rv != SKS_OK) {
+			rv = SKS_ERROR;
+			goto bail;
+		}
 	}
 
 	/*
@@ -809,9 +817,9 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	/* Move updated template to out buffer */
 	TEE_MemMove(out->memref.buffer, template, out->memref.size);
 
+bail:
 	TEE_Free(template);
 	template = NULL;
 
-bail:
 	return rv;
 }

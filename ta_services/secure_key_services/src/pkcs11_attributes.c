@@ -1498,7 +1498,8 @@ uint32_t generate_id(struct sks_attrs_head **attrs, uint32_t *set_id) {
 	/* Generate 32 bit ID */
 	if (!set_id)
 		TEE_GenerateRandom(&id, sizeof(id));
-	else id = *set_id;
+	else
+		id = *set_id;
 	rv = add_attribute(attrs, SKS_CKA_ID, &id, sizeof(id));
 	return rv;
 }
