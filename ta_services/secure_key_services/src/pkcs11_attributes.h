@@ -171,6 +171,7 @@ bool attribute_is_exportable(struct sks_attribute_head *req_attr,
  * get the same id for unrelated objects, although as far as I can tell
  * this is not required by the standard
  */
-uint32_t generate_id(struct sks_attrs_head **attrs, uint32_t *set_id);
+uint32_t generate_id(struct sks_attrs_head **attrs, void *set_id,
+						    uint32_t id_size);
 
 #endif /*__PKCS11_ATTRIBUTE_H*/
