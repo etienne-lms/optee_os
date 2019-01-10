@@ -31,6 +31,35 @@ void TA_CloseSessionEntryPoint(void *session __unused)
 }
 
 /*
+ * Entry point for invocation command SKS_CMD_PING
+ *
+ * @ctrl - param memref[0] or NULL: expected NULL
+ * @in - param memref[1] or NULL: expected NULL
+ * @out - param memref[2] or NULL
+ *
+ * Return a TEE_Result value
+ */
+static TEE_Result entry_ping(TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
+{
+	const uint32_t ver[] = { SKS_VERSION_ID0, SKS_VERSION_ID1 };
+
+	if (ctrl || in)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!out)
+		return TEE_SUCCESS;
+
+	if (out->memref.size < sizeof(ver)) {
+		out->memref.size = sizeof(ver);
+		return TEE_ERROR_SHORT_BUFFER;
+	}
+
+	TEE_MemMove(out->memref.buffer, ver, sizeof(ver));
+
+	return TEE_SUCCESS;
+}
+
+/*
  * Entry point for SKS TA commands
  *
  * ABI: param#0 is the input control buffer with serialized arguments.
@@ -106,6 +135,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 	}
 
 	switch (cmd) {
+	case SKS_CMD_PING:
+		res = entry_ping(ctrl, p1_in, p2_out);
+		break;
+
 	default:
 		EMSG("Command 0x%" PRIx32 " is not supported", cmd);
 		return TEE_ERROR_NOT_SUPPORTED;
