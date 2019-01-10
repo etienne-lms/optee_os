@@ -13,6 +13,12 @@
 #define TA_SKS_UUID { 0xfd02c9da, 0x306c, 0x48c7, \
 			{ 0xa4, 0x9c, 0xbb, 0xd8, 0x27, 0xae, 0x86, 0xee } }
 
+/* Attribute specific values */
+#define SKS_CK_UNAVAILABLE_INFORMATION		((uint32_t)0xFFFFFFFF)
+#define SKS_UNDEFINED_ID			SKS_CK_UNAVAILABLE_INFORMATION
+#define SKS_FALSE				0
+#define SKS_TRUE				1
+
 /*
  * Note on SKS TA commands ABI
  *
@@ -37,5 +43,6 @@
  *
  * Param#3 is currently unused and reserved for evolution of the API.
  */
+
 
 #endif /*__SKS_TA_H__*/
