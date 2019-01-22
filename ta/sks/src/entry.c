@@ -41,7 +41,7 @@ void TA_CloseSessionEntryPoint(void *session __unused)
  */
 static TEE_Result entry_ping(TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
 {
-	const uint32_t ver[] = { SKS_VERSION_ID0, SKS_VERSION_ID1 };
+	const uint32_t ver[] = { SKS_VERSION_MAJOR, SKS_VERSION_MINOR };
 
 	if (ctrl || in)
 		return TEE_ERROR_BAD_PARAMETERS;
@@ -66,11 +66,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 				      uint32_t ptypes,
 				      TEE_Param params[TEE_NUM_PARAMS])
 {
-	TEE_Param *ctrl __maybe_unused = NULL;
-	TEE_Param *p1_in __maybe_unused = NULL;
-	TEE_Param *p1_out __maybe_unused = NULL;
+	TEE_Param *ctrl = NULL;
+	TEE_Param *p1_in = NULL;
 	TEE_Param *p2_in __maybe_unused = NULL;
-	TEE_Param *p2_out __maybe_unused = NULL;
+	TEE_Param *p2_out = NULL;
 	TEE_Result res = TEE_ERROR_GENERIC;
 
 	/* Param#0: none or in-out buffer with serialized arguments */

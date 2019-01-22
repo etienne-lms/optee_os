@@ -14,8 +14,8 @@
 			{ 0xa4, 0x9c, 0xbb, 0xd8, 0x27, 0xae, 0x86, 0xee } }
 
 /* SKS trusted application version information */
-#define SKS_VERSION_ID0		0
-#define SKS_VERSION_ID1		0
+#define SKS_VERSION_MAJOR		0
+#define SKS_VERSION_MINOR		0
 
 /* Attribute specific values */
 #define SKS_CK_UNAVAILABLE_INFORMATION		UINT32_C(0xFFFFFFFF)
@@ -54,10 +54,9 @@
  *
  * Optinal invocation parameter (if none, command simply returns with success)
  * [out]        memref[2] = [
- *                      32bit version ID0 value ,
- *                      32bit version ID1 value
+ *                      32bit version major value,
+ *                      32bit version minor value
  *              ]
  */
 #define SKS_CMD_PING			0
-
 #endif /*__SKS_TA_H__*/
