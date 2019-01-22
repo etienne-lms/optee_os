@@ -104,3 +104,7 @@ CFG_TEE_SDP_MEM_SIZE ?= 0x00400000
 $(call force,CFG_DT,y)
 CFG_DTB_MAX_SIZE ?= 0x100000
 endif
+
+ifeq ($(CFG_SECURE_KEY_SERVICES),y)
+CFG_IN_TREE_EARLY_TAS ?= sks/fd02c9da-306c-48c7-a49c-bbd827ae86ee
+endif
