@@ -61,11 +61,6 @@ static TEE_Result entry_ping(TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
 
 /*
  * Entry point for SKS TA commands
- *
- * ABI: param#0 is the input control buffer with serialized arguments.
- *	param#1 is an input/output data buffer
- *	param#2 is an input/output data buffer (also used to return handles)
- *	param#3 is not used
  */
 TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 				      uint32_t ptypes,
@@ -78,11 +73,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 	TEE_Param *p2_out __maybe_unused = NULL;
 	TEE_Result res = TEE_ERROR_GENERIC;
 
-	/* Param#0: none or input/in-out buffer with serialized arguments */
+	/* Param#0: none or in-out buffer with serialized arguments */
 	switch (TEE_PARAM_TYPE_GET(ptypes, 0)) {
 	case TEE_PARAM_TYPE_NONE:
 		break;
-	case TEE_PARAM_TYPE_MEMREF_INPUT:
 	case TEE_PARAM_TYPE_MEMREF_INOUT:
 		ctrl = &params[0];
 		break;
@@ -90,25 +84,18 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	/* Param#1: none or input/output/in-out data buffer */
+	/* Param#1: none or input data buffer */
 	switch (TEE_PARAM_TYPE_GET(ptypes, 1)) {
 	case TEE_PARAM_TYPE_NONE:
 		break;
 	case TEE_PARAM_TYPE_MEMREF_INPUT:
 		p1_in = &params[1];
 		break;
-	case TEE_PARAM_TYPE_MEMREF_OUTPUT:
-		p1_out = &params[1];
-		break;
-	case TEE_PARAM_TYPE_MEMREF_INOUT:
-		p1_in = &params[1];
-		p1_out = &params[1];
-		break;
 	default:
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	/* Param#2: none or input/output/in-out data buffer */
+	/* Param#2: none or input data buffer */
 	switch (TEE_PARAM_TYPE_GET(ptypes, 2)) {
 	case TEE_PARAM_TYPE_NONE:
 		break;
@@ -116,10 +103,6 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 		p2_in = &params[2];
 		break;
 	case TEE_PARAM_TYPE_MEMREF_OUTPUT:
-		p2_out = &params[2];
-		break;
-	case TEE_PARAM_TYPE_MEMREF_INOUT:
-		p2_in = &params[2];
 		p2_out = &params[2];
 		break;
 	default:
@@ -143,6 +126,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void *tee_session __unused, uint32_t cmd,
 		EMSG("Command 0x%" PRIx32 " is not supported", cmd);
 		return TEE_ERROR_NOT_SUPPORTED;
 	}
+
+	/* Currently no output data stored in output param#0 */
+	if (TEE_PARAM_TYPE_GET(ptypes, 0) == TEE_PARAM_TYPE_MEMREF_INOUT)
+		ctrl->memref.size = 0;
 
 	return res;
 }

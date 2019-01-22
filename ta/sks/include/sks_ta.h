@@ -30,19 +30,20 @@
  * constraint, all the SKS TA invocation commands use a subset of available the
  * GPD TEE invocation parameter types.
  *
- * Param#0 is used for the command control arguments.
- * It is unused or is a input or in-out memory reference, aka memref[0].
- * The input buffer stores the command arguments serialized inside.
- * When in-out memref, the output buffer will store the SKS retrun code
- * for the command. Client shall get the PKCS#11 return code from it,
- *  the TEE_Result return code of the TA being forced the TEE_SUCCESS.
+ * Param#0 is used for the so-called control arguments of the invoked command
+ * and for providing a PKCS#11 compliant status code for the request command.
+ * Param#0 is an in/out memory reference (aka memref[0]). The input buffer
+ * stores the command arguments serialized inside. The output buffer will
+ * store the 32bit SKS retrun code for the command. Client shall get this
+ * return code and override the GPD TEE Client API legacy TEE_Result value.
  *
- * Param#1 is used for input data parameters for the command.
+ * Param#1 is used for input data arguments of the invoked command.
  * It is unused or is a input memory reference, aka memref[1].
  * Evolution of the API may use memref[1] for output data as well.
  *
- * Param#2 is mostly used for output data parameters for the command.
- * Few commands uses it for a secondary input data parameter.
+ * Param#2 is mostly used for output data arguments of the invoked command
+ * and for output handles generated from invoked commands.
+ * Few commands uses it for a secondary input data buffer argument.
  * It is unused or is a input/output/in-out memory reference, aka memref[2].
  *
  * Param#3 is currently unused and reserved for evolution of the API.
