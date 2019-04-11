@@ -310,24 +310,13 @@ uint32_t entry_destroy_object(uintptr_t tee_session, TEE_Param *ctrl,
 	return rv;
 }
 
-static uint32_t token_obj_matches_ref(struct sks_attrs_head *req_attrs,
-				      struct sks_object *obj)
-{
+static uint32_t open_object(struct sks_object *obj) {
 	uint32_t rv = 0;
 	TEE_Result res = TEE_ERROR_GENERIC;
 	TEE_ObjectHandle hdl = obj->attribs_hdl;
 	TEE_ObjectInfo info;
 	struct sks_attrs_head *attr = NULL;
 	uint32_t read_bytes = 0;
-
-	TEE_MemFill(&info, 0, sizeof(info));
-
-	if (obj->attributes) {
-		if (!attributes_match_reference(obj->attributes, req_attrs))
-			return SKS_NOT_FOUND;
-
-		return SKS_OK;
-	}
 
 	if (hdl == TEE_HANDLE_NULL) {
 		res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
@@ -373,21 +362,40 @@ static uint32_t token_obj_matches_ref(struct sks_attrs_head *req_attrs,
 		goto bail;
 	}
 
-	if (!attributes_match_reference(attr, req_attrs)) {
-		rv = SKS_NOT_FOUND;
-		goto bail;
-	}
-
 	obj->attributes = attr;
 	attr = NULL;
 	obj->attribs_hdl = hdl;
 	hdl = TEE_HANDLE_NULL;
-	rv = SKS_OK;
-
 bail:
 	TEE_Free(attr);
 	if (obj->attribs_hdl == TEE_HANDLE_NULL && hdl != TEE_HANDLE_NULL) {
 		TEE_CloseObject(hdl);
+	}
+
+	return rv;
+}
+
+static uint32_t token_obj_matches_ref(struct sks_attrs_head *req_attrs,
+				      struct sks_object *obj)
+{
+	uint32_t rv = SKS_OK;
+	TEE_ObjectInfo info;
+
+	TEE_MemFill(&info, 0, sizeof(info));
+
+	if (obj->attributes) {
+		if (!attributes_match_reference(obj->attributes, req_attrs))
+			return SKS_NOT_FOUND;
+
+		return rv;
+	}
+
+	rv = open_object(obj);
+	if(rv)
+		return rv;
+
+	if (!attributes_match_reference(obj->attributes, req_attrs)) {
+		return SKS_NOT_FOUND;
 	}
 
 	return rv;
@@ -542,6 +550,8 @@ uint32_t entry_find_objects_init(uintptr_t tee_session, TEE_Param *ctrl,
 				continue;
 			if (rv != SKS_OK)
 				goto bail;
+		} else {
+			open_object(obj);
 		}
 
 		rv = check_access_attrs_against_token(session, obj->attributes);
