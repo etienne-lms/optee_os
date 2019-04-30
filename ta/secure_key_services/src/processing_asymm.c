@@ -31,6 +31,7 @@ bool processing_is_tee_asymm(uint32_t proc_id)
 	case SKS_CKM_SHA256_RSA_PKCS_PSS:
 	case SKS_CKM_SHA384_RSA_PKCS_PSS:
 	case SKS_CKM_SHA512_RSA_PKCS_PSS:
+	case SKS_CKM_RSA_X_509:
 	/* EC flavors */
 	case SKS_CKM_ECDSA:
 	case SKS_CKM_ECDSA_SHA1:
@@ -53,6 +54,7 @@ static uint32_t sks2tee_algorithm(uint32_t *tee_id,
 {
 	static const uint32_t sks2tee_algo[][2] = {
 		/* RSA flavors */
+		{ SKS_CKM_RSA_X_509, TEE_ALG_RSA_NOPAD },
 		{ SKS_CKM_RSA_PKCS, TEE_ALG_RSAES_PKCS1_V1_5
 				/* TEE_ALG_RSASSA_PKCS1_V1_5 on signatures */ },
 		{ SKS_CKM_RSA_PKCS_OAEP, 1 }, /* Need to look into params */
@@ -93,7 +95,6 @@ static uint32_t sks2tee_algorithm(uint32_t *tee_id,
 	}
 
 	switch (proc_params->id) {
-	case SKS_CKM_RSA_X_509:
 	case SKS_CKM_RSA_9796:
 	case SKS_CKM_RSA_PKCS_PSS:
 		EMSG("%s not supported by GPD TEE, need an alternative...",
