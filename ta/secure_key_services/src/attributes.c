@@ -232,7 +232,7 @@ void get_attribute_ptrs(struct sks_attrs_head *head, uint32_t attribute,
 
 	for (; cur < end; cur += next_off) {
 		/* Structure aligned copy of the sks_ref in the object */
-		struct sks_ref sks_ref;
+		struct sks_ref sks_ref = { };
 
 		TEE_MemMove(&sks_ref, cur, sizeof(sks_ref));
 		next_off = sizeof(sks_ref) + sks_ref.size;
@@ -412,7 +412,7 @@ bool attributes_match_reference(struct sks_attrs_head *candidate,
 #endif
 
 	for (count = 0; count < ref->attrs_count; count++) {
-		struct sks_ref sks_ref;
+		struct sks_ref sks_ref = { };
 		void *found = NULL;
 		uint32_t size = 0;
 		int shift = 0;
@@ -472,7 +472,7 @@ static uint32_t __trace_attributes(char *prefix, void *src, void *end)
 	*(prefix2 + prefix_len + 4) = '\0';
 
 	for (; cur < (char *)end; cur += next_off) {
-		struct sks_ref sks_ref;
+		struct sks_ref sks_ref = { };
 		uint8_t data[4] = { 0 };
 
 		TEE_MemMove(&sks_ref, cur, sizeof(sks_ref));
@@ -565,7 +565,7 @@ static void trace_boolprops(const char *prefix, struct sks_attrs_head *head)
 
 uint32_t trace_attributes(const char *prefix, void *ref)
 {
-	struct sks_attrs_head head;
+	struct sks_attrs_head head = { };
 	char *pre = NULL;
 	uint32_t rc = 0;
 	size_t __maybe_unused n = 0;

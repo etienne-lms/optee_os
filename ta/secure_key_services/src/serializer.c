@@ -92,11 +92,9 @@ uint32_t serialargs_get_ptr(struct serialargs *args, void **out, size_t size)
 uint32_t serialargs_alloc_get_one_attribute(struct serialargs *args __unused,
 					    struct sks_attribute_head **out __unused)
 {
-	struct sks_attribute_head head;
+	struct sks_attribute_head head = { };
 	size_t out_size = sizeof(head);
 	void *pref = NULL;
-
-	TEE_MemFill(&head, 0, sizeof(head));
 
 	if (args->next + out_size > args->start + args->size) {
 		EMSG("arg too short: full %zd, remain %zd, expect at least %zd",
@@ -130,11 +128,9 @@ uint32_t serialargs_alloc_get_one_attribute(struct serialargs *args __unused,
 uint32_t serialargs_alloc_get_attributes(struct serialargs *args __unused,
 					 struct sks_object_head **out __unused)
 {
-	struct sks_object_head attr;
+	struct sks_object_head attr = { };
 	struct sks_object_head *pattr = NULL;
 	size_t attr_size = sizeof(attr);
-
-	TEE_MemFill(&attr, 0, sizeof(attr));
 
 	if (args->next + attr_size > args->start + args->size) {
 		EMSG("arg too short: full %zd, remain %zd, expect at least %zd",

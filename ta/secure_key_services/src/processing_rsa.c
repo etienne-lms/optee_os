@@ -19,10 +19,10 @@
 uint32_t sks2tee_proc_params_rsa_pss(struct active_processing *processing,
 				     struct sks_attribute_head *proc_params)
 {
-	struct serialargs args;
-	uint32_t rv;
-	uint32_t data32;
-	uint32_t salt_len;
+	struct serialargs args = { };
+	uint32_t rv = 0;
+	uint32_t data32 = 0;
+	uint32_t salt_len = 0;
 
 	serialargs_init(&args, proc_params->data, proc_params->size);
 
@@ -57,11 +57,11 @@ void tee_release_rsa_pss_operation(struct active_processing *processing)
 uint32_t sks2tee_algo_rsa_pss(uint32_t *tee_id,
 				struct sks_attribute_head *proc_params)
 {
-	struct serialargs args;
-	uint32_t rv;
-	uint32_t hash;
-	uint32_t mgf;
-	uint32_t salt_len;
+	struct serialargs args = { };
+	uint32_t rv = 0;
+	uint32_t hash = 0;
+	uint32_t mgf = 0;
+	uint32_t salt_len = 0;
 
 	serialargs_init(&args, proc_params->data, proc_params->size);
 
@@ -110,14 +110,14 @@ uint32_t tee_init_rsa_aes_key_wrap_operation(struct active_processing *proc,
 					     void *proc_params,
 					     size_t params_size)
 {
-	struct serialargs args;
-	uint32_t rv;
-	uint32_t aes_bit_size;
-	uint32_t hash;
-	uint32_t mgf;
-	uint32_t source_type;
-	void *source_data;
-	uint32_t source_size;
+	struct serialargs args = { };
+	uint32_t rv = 0;
+	uint32_t aes_bit_size = 0;
+	uint32_t hash = 0;
+	uint32_t mgf = 0;
+	uint32_t source_type = 0;
+	void *source_data = NULL;
+	uint32_t source_size = 0;
 
 	serialargs_init(&args, proc_params, params_size);
 
@@ -153,13 +153,13 @@ uint32_t tee_init_rsa_aes_key_wrap_operation(struct active_processing *proc,
 uint32_t sks2tee_algo_rsa_oaep(uint32_t *tee_id,
 				struct sks_attribute_head *proc_params)
 {
-	struct serialargs args;
-	uint32_t rv;
-	uint32_t hash;
-	uint32_t mgf;
-	uint32_t source_type;
-	void *source_data;
-	uint32_t source_size;
+	struct serialargs args = { };
+	uint32_t rv = 0;
+	uint32_t hash = 0;
+	uint32_t mgf = 0;
+	uint32_t source_type = 0;
+	void *source_data = NULL;
+	uint32_t source_size = 0;
 
 	serialargs_init(&args, proc_params->data, proc_params->size);
 
@@ -233,13 +233,13 @@ uint32_t tee_init_rsa_oaep_operation(struct active_processing *processing,
 uint32_t tee_init_rsa_oaep_operation(struct active_processing *processing,
 				     void *proc_params, size_t params_size)
 {
-	struct serialargs args;
-	uint32_t rv;
-	uint32_t hash;
-	uint32_t mgf;
-	uint32_t source_type;
-	void *source_data;
-	uint32_t source_size;
+	struct serialargs args = { };
+	uint32_t rv = 0;
+	uint32_t hash = 0;
+	uint32_t mgf = 0;
+	uint32_t source_type = 0;
+	void *source_data = NULL;
+	uint32_t source_size = 0;
 
 	serialargs_init(&args, proc_params, params_size);
 
@@ -374,7 +374,7 @@ static uint32_t tee2sks_rsa_attributes(struct sks_attrs_head **pub_head,
 					struct sks_attrs_head **priv_head,
 					TEE_ObjectHandle tee_obj)
 {
-	uint32_t rv;
+	uint32_t rv = 0;
 
 	rv = tee2sks_add_attribute(pub_head, SKS_CKA_MODULUS,
 				   tee_obj, TEE_ATTR_RSA_MODULUS);
@@ -435,13 +435,13 @@ uint32_t generate_rsa_keys(struct sks_attribute_head *proc_params,
 			   struct sks_attrs_head **pub_head,
 			   struct sks_attrs_head **priv_head)
 {
-	uint32_t rv;
-	void *a_ptr;
-	uint32_t a_size;
-	TEE_ObjectHandle tee_obj;
-	TEE_Result res;
-	uint32_t tee_size;
-	TEE_Attribute tee_attrs[1];
+	uint32_t rv = 0;
+	void *a_ptr = NULL;
+	uint32_t a_size = 0;
+	TEE_ObjectHandle tee_obj = TEE_HANDLE_NULL;
+	TEE_Result res = TEE_ERROR_GENERIC;
+	uint32_t tee_size = 0;
+	TEE_Attribute tee_attrs[1] = { };
 	uint32_t tee_count = 0;
 
 	if (!proc_params || !*pub_head || !*priv_head) {

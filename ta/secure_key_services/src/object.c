@@ -72,7 +72,7 @@ static void cleanup_volatile_obj_ref(struct sks_object *obj)
 static void cleanup_persistent_object(struct sks_object *obj,
 				      struct ck_token *token)
 {
-	TEE_Result res;
+	TEE_Result res = TEE_ERROR_GENERIC;
 
 	if (!obj)
 		return;
@@ -268,14 +268,12 @@ bail:
 uint32_t entry_destroy_object(uintptr_t tee_session, TEE_Param *ctrl,
 				TEE_Param *in, TEE_Param *out)
 {
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	uint32_t object_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_object *object = NULL;
 	uint32_t rv = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || out)
 		return SKS_BAD_PARAM;
@@ -316,11 +314,9 @@ static uint32_t token_obj_matches_ref(struct sks_attrs_head *req_attrs,
 	uint32_t rv = 0;
 	TEE_Result res = TEE_ERROR_GENERIC;
 	TEE_ObjectHandle hdl = obj->attribs_hdl;
-	TEE_ObjectInfo info;
+	TEE_ObjectInfo info = { };
 	struct sks_attrs_head *attr = NULL;
 	uint32_t read_bytes = 0;
-
-	TEE_MemFill(&info, 0, sizeof(info));
 
 	if (obj->attributes) {
 		if (!attributes_match_reference(obj->attributes, req_attrs))
@@ -421,15 +417,13 @@ uint32_t entry_find_objects_init(uintptr_t tee_session, TEE_Param *ctrl,
 				 TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_object_head *template = NULL;
 	struct sks_attrs_head *req_attrs = NULL;
 	struct sks_object *obj = NULL;
 	struct pkcs11_find_objects *find_ctx = NULL;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || out)
 		return SKS_BAD_PARAM;
@@ -597,7 +591,7 @@ uint32_t entry_find_objects(uintptr_t tee_session, TEE_Param *ctrl,
 			    TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct pkcs11_find_objects *ctx = NULL;
@@ -605,8 +599,6 @@ uint32_t entry_find_objects(uintptr_t tee_session, TEE_Param *ctrl,
 	size_t out_count = 0;
 	size_t count = 0;
 	size_t idx = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
@@ -673,11 +665,9 @@ uint32_t entry_find_objects_final(uintptr_t tee_session, TEE_Param *ctrl,
 				  TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 9;
 	struct pkcs11_session *session = NULL;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || out)
 		return SKS_BAD_PARAM;
@@ -707,7 +697,7 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 				   TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_object_head *template = NULL;
@@ -719,8 +709,6 @@ uint32_t entry_get_attribute_value(uintptr_t tee_session, TEE_Param *ctrl,
 	bool attr_sensitive = 0;
 	bool attr_type_invalid = 0;
 	bool buffer_too_small = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;

@@ -54,18 +54,17 @@ bool sanitize_consistent_class_and_type(struct sks_attrs_head *attrs)
 static uint32_t sanitize_class_and_type(struct sks_attrs_head **dst,
 				     void *src)
 {
-	struct sks_object_head head;
+	struct sks_object_head head = { };
 	char *cur = NULL;
 	char *end = NULL;
 	size_t len = 0;
 	uint32_t class_found = 0;
 	uint32_t type_found = 0;
-	struct sks_attribute_head cli_ref;
+	struct sks_attribute_head cli_ref = { };
 	uint32_t rc = SKS_OK;
 	size_t src_size = 0;
 
 	TEE_MemMove(&head, src, sizeof(head));
-	TEE_MemFill(&cli_ref, 0, sizeof(cli_ref));
 
 	src_size = sizeof(struct sks_object_head) + head.attrs_size;
 
@@ -81,7 +80,7 @@ static uint32_t sanitize_class_and_type(struct sks_attrs_head **dst,
 		len = sizeof(cli_ref) + cli_ref.size;
 
 		if (sks_attr_is_class(cli_ref.id)) {
-			uint32_t class;
+			uint32_t class = 0;
 
 			if (cli_ref.size != sks_attr_is_class(cli_ref.id)) {
 				rc = SKS_CKR_TEMPLATE_INCONSISTENT;
@@ -205,17 +204,16 @@ static uint32_t sanitize_boolprop(struct sks_attrs_head **dst,
 
 static uint32_t sanitize_boolprops(struct sks_attrs_head **dst, void *src)
 {
-	struct sks_object_head head;
+	struct sks_object_head head = { };
 	char *cur = NULL;
 	char *end = NULL;
 	size_t len = 0;
-	struct sks_attribute_head cli_ref;
+	struct sks_attribute_head cli_ref = { };
 	uint32_t sanity[SKS_MAX_BOOLPROP_ARRAY] = { 0 };
 	uint32_t boolprops[SKS_MAX_BOOLPROP_ARRAY] = { 0 };
 	uint32_t rc = 0;
 
 	TEE_MemMove(&head, src, sizeof(head));
-	TEE_MemFill(&cli_ref, 0, sizeof(cli_ref));
 
 	cur = (char *)src + sizeof(struct sks_object_head);
 	end = cur + head.attrs_size;
@@ -276,13 +274,11 @@ static uint32_t sanitize_indirect_attr(struct sks_attrs_head **dst,
 uint32_t sanitize_client_object(struct sks_attrs_head **dst,
 				void *src, size_t size)
 {
-	struct sks_object_head head;
+	struct sks_object_head head = { };
 	uint32_t rc = 0;
 	char *cur = NULL;
 	char *end = NULL;
 	size_t next = 0;
-
-	TEE_MemFill(&head, 0, sizeof(head));
 
 	if (size < sizeof(struct sks_object_head))
 		return SKS_BAD_PARAM;
@@ -306,7 +302,7 @@ uint32_t sanitize_client_object(struct sks_attrs_head **dst,
 	end = cur + head.attrs_size;
 
 	for (; cur < end; cur += next) {
-		struct sks_attribute_head cli_ref;
+		struct sks_attribute_head cli_ref = { };
 
 		TEE_MemMove(&cli_ref, cur, sizeof(cli_ref));
 		next = sizeof(cli_ref) + cli_ref.size;
@@ -367,7 +363,7 @@ static uint32_t __trace_attributes(char *prefix, void *src, void *end)
 	*(prefix2 + prefix_len + 4) = '\0';
 
 	for (; cur < (char *)end; cur += next) {
-		struct sks_ref sks_ref;
+		struct sks_ref sks_ref = { };
 		uint8_t data[4] = { 0 };
 		uint32_t data_u32 = 0;
 
@@ -435,7 +431,7 @@ static uint32_t __trace_attributes(char *prefix, void *src, void *end)
 uint32_t trace_attributes_from_api_head(const char *prefix,
 					void *ref, size_t size)
 {
-	struct sks_object_head head;
+	struct sks_object_head head = { };
 	char *pre = NULL;
 	size_t offset = 0;
 	uint32_t rc = 0;

@@ -161,13 +161,11 @@ static uint32_t allocate_tee_operation(struct pkcs11_session *session,
 static uint32_t load_tee_key(struct pkcs11_session *session,
 				struct sks_object *obj)
 {
-	TEE_Attribute tee_attr;
+	TEE_Attribute tee_attr = { };
 	size_t object_size = 0;
 	uint32_t key_type = 0;
 	uint32_t rv = 0;
 	TEE_Result res = TEE_ERROR_GENERIC;
-
-	TEE_MemFill(&tee_attr, 0, sizeof(tee_attr));
 
 	if (obj->key_handle != TEE_HANDLE_NULL) {
 		/* Key was already loaded and fits current need */

@@ -83,11 +83,9 @@ static void init_pin_keys(struct ck_token *token, unsigned int uid)
 	}
 
 	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
-		TEE_Attribute attr;
+		TEE_Attribute attr = { };
 		TEE_ObjectHandle hdl = TEE_HANDLE_NULL;
 		uint8_t pin_key[16] = { 0 };
-
-		TEE_MemFill(&attr, 0, sizeof(attr));
 
 		TEE_GenerateRandom(pin_key, sizeof(pin_key));
 		TEE_InitRefAttribute(&attr, TEE_ATTR_SECRET_VALUE,
@@ -168,7 +166,7 @@ uint32_t unregister_persistent_object(struct ck_token *token, TEE_UUID *uuid)
 {
 	int index = 0;
 	int count = 0;
-	struct token_persistent_objs *ptr;
+	struct token_persistent_objs *ptr = NULL;
 	TEE_Result res = TEE_ERROR_GENERIC;
 
 	if (!uuid)

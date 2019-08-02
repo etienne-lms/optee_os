@@ -129,15 +129,13 @@ uint32_t entry_import_object(uintptr_t tee_session,
 			     TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_attrs_head *head = NULL;
 	struct sks_object_head *template = NULL;
 	size_t template_size = 0;
 	uint32_t obj_handle = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	/*
 	 * Collect the arguments of the request
@@ -270,10 +268,10 @@ size_t get_object_key_bit_size(struct sks_object *obj)
 static uint32_t generate_random_key_value(struct sks_attrs_head **head)
 {
 	uint32_t rv = 0;
-	void *data;
-	uint32_t data_size;
-	uint32_t value_len;
-	void *value;
+	void *data = NULL;
+	uint32_t data_size = 0;
+	uint32_t value_len = 0;
+	void *value = NULL;
 
 	if (!*head)
 		return SKS_CKR_TEMPLATE_INCONSISTENT;
@@ -306,7 +304,7 @@ uint32_t entry_generate_secret(uintptr_t tee_session,
 			       TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_attribute_head *proc_params = NULL;
@@ -314,8 +312,6 @@ uint32_t entry_generate_secret(uintptr_t tee_session,
 	struct sks_object_head *template = NULL;
 	size_t template_size = 0;
 	uint32_t obj_handle = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
@@ -481,7 +477,7 @@ uint32_t entry_generate_key_pair(uintptr_t teesess,
 				 TEE_Param *ctrl, TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_attribute_head *proc_params = NULL;
@@ -492,8 +488,6 @@ uint32_t entry_generate_key_pair(uintptr_t teesess,
 	uint32_t pubkey_handle = 0;
 	uint32_t privkey_handle = 0;
 	uint32_t *hdl_ptr = NULL;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
@@ -653,14 +647,12 @@ uint32_t entry_processing_init(uintptr_t tee_session, TEE_Param *ctrl,
 				enum processing_func function)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_attribute_head *proc_params = NULL;
 	uint32_t key_handle = 0;
 	struct sks_object *obj = NULL;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || out)
 		return SKS_BAD_PARAM;
@@ -746,12 +738,10 @@ uint32_t entry_processing_step(uintptr_t tee_session, TEE_Param *ctrl,
 				enum processing_step step)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	uint32_t mecha_type = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl)
 		return SKS_BAD_PARAM;
@@ -823,12 +813,10 @@ uint32_t entry_verify_oneshot(uintptr_t tee_session, TEE_Param *ctrl,
 
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	uint32_t mecha_type = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	assert(function == SKS_FUNCTION_VERIFY);
 	if (!ctrl)
@@ -875,19 +863,17 @@ uint32_t entry_derive_key(uintptr_t tee_session, TEE_Param *ctrl,
 			  TEE_Param *in, TEE_Param *out)
 {
 	uint32_t rv = 0;
-	struct serialargs ctrlargs;
+	struct serialargs ctrlargs = { };
 	uint32_t session_handle = 0;
 	struct pkcs11_session *session = NULL;
 	struct sks_attribute_head *proc_params = NULL;
 	uint32_t parent_handle = 0;
-	struct sks_object *parent_obj;
+	struct sks_object *parent_obj = NULL;
 	struct sks_attrs_head *head = NULL;
 	struct sks_object_head *template = NULL;
 	size_t template_size = 0;
 	uint32_t out_handle = 0;
 	uint32_t __maybe_unused mecha_id = 0;
-
-	TEE_MemFill(&ctrlargs, 0, sizeof(ctrlargs));
 
 	if (!ctrl || in || !out)
 		return SKS_BAD_PARAM;
