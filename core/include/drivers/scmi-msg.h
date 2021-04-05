@@ -78,7 +78,20 @@ void scmi_smt_interrupt_entry(unsigned int channel_id);
  */
 void scmi_smt_threaded_entry(unsigned int channel_id);
 
-/* Platform callback functions */
+/*
+ * Set SMT shared buffer location
+ *
+ * @channel: SCMI channel reference
+ * @base: virtual address of the shared buffer
+ */
+void scmi_smt_set_shared_buffer(struct scmi_msg_channel *channel, void *base);
+
+/*
+ * Unregister SMT shared buffer location
+ *
+ * @channel: SCMI channel reference
+ */
+void scmi_smt_unset_shared_buffer(struct scmi_msg_channel *channel);
 
 /*
  * Return the SCMI channel related to an agent
