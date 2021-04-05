@@ -104,6 +104,34 @@ static inline void scmi_smt_threaded_entry(unsigned int channel_id __unused)
 }
 #endif
 
+#ifdef CFG_SCMI_MSG_SMT
+/*
+ * Set SMT shared buffer location
+ *
+ * @channel: SCMI channel reference
+ * @base: virtual address of the shared buffer
+ */
+void scmi_smt_set_shared_buffer(struct scmi_msg_channel *channel, void *base);
+
+/*
+ * Unregister SMT shared buffer location
+ *
+ * @channel: SCMI channel reference
+ */
+void scmi_smt_unset_shared_buffer(struct scmi_msg_channel *channel);
+#else
+static inline
+void scmi_smt_set_shared_buffer(struct scmi_msg_channel *channel __unused,
+				void *base __unused)
+{
+}
+
+static inline
+void scmi_smt_unset_shared_buffer(struct scmi_msg_channel *channel __unused)
+{
+}
+#endif /* CFG_SCMI_MSG_SMT */
+
 #ifdef CFG_SCMI_MSG_DRIVERS
 /*
  * Return the SCMI channel related to an agent
