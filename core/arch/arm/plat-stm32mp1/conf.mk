@@ -40,7 +40,6 @@ $(call force,CFG_SCMI_MSG_DRIVERS,y)
 $(call force,CFG_SCMI_MSG_CLOCK,y)
 $(call force,CFG_SCMI_MSG_RESET_DOMAIN,y)
 $(call force,CFG_SCMI_MSG_SMT,y)
-$(call force,CFG_SCMI_MSG_SMT_FASTCALL_ENTRY,y)
 $(call force,CFG_SCMI_MSG_VOLTAGE_DOMAIN,y)
 $(call force,CFG_SCMI_MSG_SMT_THREAD_ENTRY,y)
 $(call force,CFG_SCMI_PTA,y)
@@ -95,6 +94,10 @@ CFG_STM32MP_PANIC_ON_TZC_PERM_VIOLATION ?= y
 
 # SiP/OEM service for non-secure world
 CFG_STM32_BSEC_SIP ?= y
+CFG_STM32MP1_SCMI_SIP ?= y
+ifeq ($(CFG_STM32MP1_SCMI_SIP),y)
+$(call force,CFG_SCMI_MSG_SMT_FASTCALL_ENTRY,y)
+endif
 
 # Default enable some test facitilites
 CFG_TEE_CORE_EMBED_INTERNAL_TESTS ?= y
