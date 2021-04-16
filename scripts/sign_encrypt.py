@@ -10,6 +10,44 @@ import sys
 algo = {'TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256': 0x70414930,
         'TEE_ALG_RSASSA_PKCS1_V1_5_SHA256': 0x70004830}
 
+# Set PKCS#11 token and key references/arguments
+#
+# Token label is mandatory. Default value: see default_pkcs11_token_label.
+# Can be set from environmental variable PKCS11_TOKEN_LABEL.
+#
+# Token user PIN is optional, currently defaults to None.
+# Can be set from environmental variable PKCS11_TOKEN_PIN.
+# If None, the token is not logged in.
+#
+# Key is searched based on expected key type and optionally its
+# label and/or its ID. Currently defaults to None (not used
+# find target key in the PKCS#11 token).
+# Can be set from environmental variables PKCS11_KEY_LABEL and
+# PKCS11_KEY_ID.
+import os
+default_pkcs11_token_label = 'OP-TEE TA authentication'
+default_pkcs11_token_pin = None
+default_pkcs11_key_label = None
+default_pkcs11_key_id = None
+try:
+    pkcs11_token_label = os.environ['PKCS11_TOKEN_LABEL']
+except:
+    pkcs11_token_label = default_pkcs11_token_label
+try:
+    pkcs11_token_pin = os.environ['PKCS11_TOKEN_PIN']
+except:
+    pkcs11_token_pin = default_pkcs11_token_pin
+try:
+    pkcs11_key_label = os.environ['PKCS11_KEY_LABEL']
+except:
+    pkcs11_key_label = default_pkcs11_key_label
+try:
+    pkcs11_key_id = os.environ['PKCS11_KEY_ID']
+except:
+    pkcs11_key_id = default_pkcs11_key_id
+else:
+    pkcs11_key_id = bytes.fromhex(pkcs11_key_id)
+
 
 def uuid_parse(s):
     from uuid import UUID
@@ -23,7 +61,7 @@ def int_parse(str):
 def get_args(logger):
     from argparse import ArgumentParser, RawDescriptionHelpFormatter
     import textwrap
-    command_base = ['sign-enc', 'digest', 'stitch']
+    command_base = ['sign-enc', 'digest', 'stitch', 'pkcs11-sign']
     command_aliases_digest = ['generate-digest']
     command_aliases_stitch = ['stitch-ta']
     command_aliases = command_aliases_digest + command_aliases_stitch
@@ -55,6 +93,11 @@ def get_args(logger):
         ' arguments\n' +
         '                 --uuid, --in, --key, --enc-key (optional), --out,' +
         ' --algo (optional) and --sig.\n\n' +
+        '     pkcs11-sign      Generate loadable signed TA binary image' +
+        'file from TA\n' +
+        '                      raw image and using a PKCS#11 token.' +
+        'Takes arguments\n' +
+        '                 --uuid,  --ta-version, --in and --out.\n\n' +
         '   %(prog)s --help  show available commands and arguments\n\n',
         formatter_class=RawDescriptionHelpFormatter,
         epilog=textwrap.dedent('''\
@@ -85,7 +128,7 @@ def get_args(logger):
         help='Command, one of [' + ', '.join(command_base) + ']')
     parser.add_argument('--uuid', required=True,
                         type=uuid_parse, help='String UUID of the TA')
-    parser.add_argument('--key', required=True,
+    parser.add_argument('--key', required=False,
                         help='Name of signing key file (PEM format)')
     parser.add_argument('--enc-key', required=False,
                         help='Encryption key string')
@@ -167,8 +210,12 @@ def main():
 
     args = get_args(logger)
 
-    with open(args.key, 'rb') as f:
-        key = RSA.importKey(f.read())
+    if args.command != 'pkcs11-sign':
+        with open(args.key, 'rb') as f:
+            key = RSA.importKey(f.read())
+            sig_len = key.size_in_bytes()
+    else:
+        sig_len = 28
 
     with open(args.inf, 'rb') as f:
         img = f.read()
@@ -176,7 +223,6 @@ def main():
     h = SHA256.new()
 
     digest_len = h.digest_size
-    sig_len = key.size_in_bytes()
 
     img_size = len(img)
 
@@ -237,12 +283,34 @@ def main():
         else:
             signer = pss.new(key)
             sig = signer.sign(h)
-            if len(sig) != sig_len:
+            if len(sig) != sig_len and args.command != 'pkcs11-sign':
                 raise Exception(("Actual signature length is not equal to ",
                                  "the computed one: {} != {}").
                                 format(len(sig), sig_len))
             write_image_with_signature(sig)
             logger.info('Successfully signed application.')
+
+    def pkcs11_sign_ta():
+        import pkcs11
+
+        lib = pkcs11.lib(os.environ['PKCS11_MODULE'])
+        token = lib.get_token(token_label=pkcs11_token_label)
+        with token.open(user_pin=pkcs11_token_pin) as session:
+            key = session.get_key(key_type=pkcs11.KeyType.RSA,
+                                  object_class=pkcs11.ObjectClass.PRIVATE_KEY,
+                                  label=pkcs11_key_label,
+                                  id=pkcs11_key_id)
+
+            if args.algo == 'TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256':
+                mecha = pkcs11.Mechanism.RSA_PKCS_PSS
+                param = (pkcs11.Mechanism.SHA256, pkcs11.MGF.SHA1, 0)
+            elif args.algo == 'TEE_ALG_RSASSA_PKCS1_V1_5_SHA256':
+                mecha = pkcs11.Mechanism.RSA_PKCS
+                param = None
+
+            sig = key.sign(img_digest, mechanism=mecha, mechanism_param=param)
+            write_image_with_signature(sig)
+            logger.info('Successfully signed application w/ PKCS#11 token')
 
     def generate_digest():
         with open(args.digf, 'wb+') as digfile:
@@ -280,7 +348,8 @@ def main():
         'digest': generate_digest,
         'generate-digest': generate_digest,
         'stitch': stitch_ta,
-        'stitch-ta': stitch_ta
+        'stitch-ta': stitch_ta,
+        'pkcs11-sign': pkcs11_sign_ta
     }.get(args.command, 'sign_encrypt_ta')()
 
 
