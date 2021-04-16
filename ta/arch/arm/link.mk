@@ -103,6 +103,16 @@ ifeq ($(CFG_ENCRYPT_TA),y)
 crypt-args$(user-ta-uuid) := --enc-key $(TA_ENC_KEY)
 cmd-echo$(user-ta-uuid) := SIGNENC
 endif
+
+ifeq ($(CFG_SIGN_TA_WITH_PKCS11),y)
+$(link-out-dir$(sm))/$(user-ta-uuid).ta: \
+			$(link-out-dir$(sm))/$(user-ta-uuid).stripped.elf \
+			$(lastword $(SIGN_ENC))
+	@$(cmd-echo-silent) '  $$(cmd-echo$(user-ta-uuid)) $$@'
+	$(q)$(SIGN_ENC) pkcs11-sign $$(crypt-args$(user-ta-uuid)) \
+		--uuid $(user-ta-uuid) --ta-version $(user-ta-version) \
+		--in $$< --out $$@
+else
 $(link-out-dir$(sm))/$(user-ta-uuid).ta: \
 			$(link-out-dir$(sm))/$(user-ta-uuid).stripped.elf \
 			$(TA_SIGN_KEY) \
@@ -111,6 +121,7 @@ $(link-out-dir$(sm))/$(user-ta-uuid).ta: \
 	$(q)$(SIGN_ENC) --key $(TA_SIGN_KEY) $$(crypt-args$(user-ta-uuid)) \
 		--uuid $(user-ta-uuid) --ta-version $(user-ta-version) \
 		--in $$< --out $$@
+endif # CFG_SIGN_TA_WITH_PKCS11
 endef
 
 $(eval $(call gen-link-t))
