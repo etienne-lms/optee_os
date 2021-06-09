@@ -199,6 +199,11 @@ CFG_RPMB_TESTKEY ?= n
 # - RPMB key provisioning in a controlled environment (factory setup)
 CFG_RPMB_WRITE_KEY ?= n
 
+# When not 0, RPMB blocks #0 to block #(CFG_RPMB_RSV_START_BLOCKS - 1)
+# are reserved and not used by OP-TEE native isecure storage. These
+# RPMB blocks may be used by some secure boot stage for example.
+CFG_RPMB_RSV_START_BLOCKS ?= 0
+
 # Signing key for OP-TEE TA's
 # When performing external HSM signing for TA's TA_SIGN_KEY can be set to dummy
 # key and then set TA_PUBLIC_KEY to match public key from the HSM.

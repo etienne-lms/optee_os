@@ -31,9 +31,13 @@
 #include <trace.h>
 #include <util.h>
 
-#define RPMB_STORAGE_START_ADDRESS      0
-#define RPMB_FS_FAT_START_ADDRESS       512
 #define RPMB_BLOCK_SIZE_SHIFT           8
+
+#define RPMB_STORAGE_START_ADDRESS      (CFG_RPMB_RSV_START_BLOCKS << \
+					 RPMB_BLOCK_SIZE_SHIFT)
+#define RPMB_FS_FAT_START_ADDRESS       (RPMB_STORAGE_START_ADDRESS + \
+					 (2 << RPMB_BLOCK_SIZE_SHIFT))
+
 #define RPMB_CID_PRV_OFFSET             9
 #define RPMB_CID_CRC_OFFSET             15
 
