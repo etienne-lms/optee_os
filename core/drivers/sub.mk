@@ -39,5 +39,6 @@ srcs-$(CFG_IMX_RNGB) += imx_rngb.c
 
 subdirs-y += crypto
 subdirs-$(CFG_BNXT_FW) += bnxt
+subdirs-$(CFG_DRIVERS_CLK) += clk
 subdirs-$(CFG_SCMI_MSG_DRIVERS) += scmi-msg
 subdirs-y += imx
