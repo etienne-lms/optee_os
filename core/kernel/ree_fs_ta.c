@@ -360,11 +360,15 @@ static TEE_Result check_update_version(struct shdr_bootstrap_ta *hdr)
 
 	mutex_lock(&ta_ver_db_mutex);
 
+	MSG("[core] Open TA database (start)");
 	res = ops->open(&pobj, NULL, &fh);
+	MSG("[core] Open TA database (end)");
 	if (res != TEE_SUCCESS && res != TEE_ERROR_ITEM_NOT_FOUND)
 		goto out;
 
 	if (res == TEE_ERROR_ITEM_NOT_FOUND) {
+		MSG("[core] Create TA database (start)");
+
 		res = ops->create(&pobj, false, NULL, 0, NULL, 0, NULL, 0, &fh);
 		if (res != TEE_SUCCESS)
 			goto out;
@@ -372,9 +376,12 @@ static TEE_Result check_update_version(struct shdr_bootstrap_ta *hdr)
 		res = ops->write(fh, 0, &db_hdr, sizeof(db_hdr));
 		if (res != TEE_SUCCESS)
 			goto out;
+
+		MSG("[core] Create TA database (end)");
 	} else {
 		len = sizeof(db_hdr);
 
+		MSG("[core] Read TA database (start)");
 		res = ops->read(fh, 0, &db_hdr, &len);
 		if (res != TEE_SUCCESS) {
 			goto out;
@@ -382,13 +389,16 @@ static TEE_Result check_update_version(struct shdr_bootstrap_ta *hdr)
 			res = TEE_ERROR_BAD_STATE;
 			goto out;
 		}
+		MSG("[core] Read TA database (end)");
 	}
 
 	for (i = 0; i < db_hdr.nb_entries; i++) {
 		len = sizeof(hdr_entry);
 
+		MSG("[core] Read TA database entry (start)");
 		res = ops->read(fh, sizeof(db_hdr) + (i * len), &hdr_entry,
 				&len);
+		MSG("[core] Read TA database entry (end)");
 		if (res != TEE_SUCCESS) {
 			goto out;
 		} else if (len != sizeof(hdr_entry)) {
@@ -407,13 +417,20 @@ static TEE_Result check_update_version(struct shdr_bootstrap_ta *hdr)
 			res = TEE_ERROR_ACCESS_CONFLICT;
 			goto out;
 		} else if (hdr_entry.ta_version < hdr->ta_version) {
+			MSG("[core] Update entry in TA database: TA version %u -> %u (start)",
+			     hdr_entry.ta_version, hdr->ta_version);
+
 			len = sizeof(*hdr);
 			res = ops->write(fh, sizeof(db_hdr) + (i * len), hdr,
 					 len);
+			MSG("[core] Update entry in TA database (end)");
 			if (res != TEE_SUCCESS)
 				goto out;
 		}
 	} else {
+		MSG("[core] Add entry in TA database: TA version %u (start)",
+		    hdr->ta_version);
+
 		len = sizeof(*hdr);
 		res = ops->write(fh, sizeof(db_hdr) + (db_hdr.nb_entries * len),
 				 hdr, len);
@@ -424,6 +441,8 @@ static TEE_Result check_update_version(struct shdr_bootstrap_ta *hdr)
 		res = ops->write(fh, 0, &db_hdr, sizeof(db_hdr));
 		if (res != TEE_SUCCESS)
 			goto out;
+
+		MSG("[core] Add entry in TA database (end)");
 	}
 
 out:

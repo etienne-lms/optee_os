@@ -912,6 +912,8 @@ static TEE_Result tee_rpmb_get_dev_info(uint16_t dev_id,
 	di = (struct rpmb_dev_info *)resp;
 	di->ret_code = RPMB_CMD_GET_DEV_INFO_RET_ERROR;
 
+	MSG("Get RPMB information");
+
 	res = tee_rpmb_invoke(&mem);
 	if (res != TEE_SUCCESS)
 		goto func_exit;
@@ -973,6 +975,8 @@ static TEE_Result tee_rpmb_init_read_wr_cnt(uint16_t dev_id,
 	res = tee_rpmb_req_pack(req, &rawdata, 1, dev_id, NULL, NULL);
 	if (res != TEE_SUCCESS)
 		goto func_exit;
+
+	MSG("Read RPMB counter");
 
 	res = tee_rpmb_invoke(&mem);
 	if (res != TEE_SUCCESS)
@@ -1042,6 +1046,8 @@ static TEE_Result tee_rpmb_write_key(uint16_t dev_id)
 	res = tee_rpmb_req_pack(req, &rawdata, 1, dev_id, NULL, NULL);
 	if (res != TEE_SUCCESS)
 		goto func_exit;
+
+	MSG("Program RPMB key");
 
 	res = tee_rpmb_invoke(&mem);
 	if (res != TEE_SUCCESS)
@@ -1249,6 +1255,7 @@ static TEE_Result tee_rpmb_read(uint16_t dev_id, uint32_t addr, uint8_t *data,
 
 	DMSG("Read %u block%s at index %u", blkcnt, ((blkcnt > 1) ? "s" : ""),
 	     blk_idx);
+	MSG("Read %u RPMB block%s", blkcnt, blkcnt > 1 ? "s" : "");
 
 	res = tee_rpmb_invoke(&mem);
 	if (res != TEE_SUCCESS)
@@ -1324,6 +1331,8 @@ static TEE_Result write_req(uint16_t dev_id, uint16_t blk_idx,
 			DMSG("Request pack failed, retrying %zu", retry_count);
 			continue;
 		}
+
+		MSG("Write %u RPMB block%s", blkcnt, blkcnt > 1 ? "s" : "");
 
 		res = tee_rpmb_invoke(mem);
 		if (res != TEE_SUCCESS) {
