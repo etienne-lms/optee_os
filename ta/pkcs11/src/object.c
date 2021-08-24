@@ -109,12 +109,16 @@ void cleanup_persistent_object(struct pkcs11_object *obj,
 	if (obj->attribs_hdl != TEE_HANDLE_NULL)
 		TEE_CloseObject(obj->attribs_hdl);
 
+	MSG("[ta/pkcs11] Unregister pkcs11 persistent object in storage (open/delete)");
+
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
 				       obj->uuid, sizeof(TEE_UUID),
 				       TEE_DATA_FLAG_ACCESS_WRITE_META,
 				       &obj->attribs_hdl);
 	if (!res)
 		TEE_CloseAndDeletePersistentObject1(obj->attribs_hdl);
+
+	MSG("[ta/pkcs11] Unregister pkcs11 persistent object in storage (completed)");
 
 	obj->attribs_hdl = TEE_HANDLE_NULL;
 	destroy_object_uuid(token, obj);
@@ -254,12 +258,17 @@ enum pkcs11_rc create_object(void *sess, struct obj_attrs *head,
 		if (rc)
 			goto err;
 
+		MSG("[ta/pkcs11] Save persistent object in pkcs11 token (create/write/close)");
+
 		res = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 						 obj->uuid, sizeof(TEE_UUID),
 						 tee_obj_flags,
 						 TEE_HANDLE_NULL,
 						 obj->attributes, size,
 						 &obj->attribs_hdl);
+
+		MSG("[ta/pkcs11] Save persistent object in pkcs11 token (completed)");
+
 		if (res) {
 			rc = tee2pkcs_error(res);
 			goto err;

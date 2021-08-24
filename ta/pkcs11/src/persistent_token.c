@@ -56,6 +56,7 @@ void update_persistent_db(struct ck_token *token)
 	TEE_Result res = TEE_ERROR_GENERIC;
 	TEE_ObjectHandle db_hdl = TEE_HANDLE_NULL;
 
+	MSG("[ta/pkcs11] Update persistent database (open/read/write/close)");
 	res = open_db_file(token, &db_hdl);
 	if (res) {
 		EMSG("Failed to open token persistent db: %#"PRIx32, res);
@@ -69,6 +70,7 @@ void update_persistent_db(struct ck_token *token)
 	}
 
 	TEE_CloseObject(db_hdl);
+	MSG("[ta/pkcs11] Update persistent database (completed)");
 }
 
 static enum pkcs11_rc do_hash(uint32_t user, const uint8_t *pin,
@@ -374,6 +376,8 @@ enum pkcs11_rc unregister_persistent_object(struct ck_token *token,
 	if (!ptr)
 		return PKCS11_CKR_DEVICE_MEMORY;
 
+	MSG("[ta/pkcs11] Unregister persistent object in database (open/write/close)");
+
 	res = open_db_file(token, &db_hdl);
 	if (res)
 		goto out;
@@ -409,6 +413,8 @@ out:
 	TEE_CloseObject(db_hdl);
 	TEE_Free(ptr);
 
+	MSG("[ta/pkcs11] Unregister persistent object in database (completed)");
+
 	return tee2pkcs_error(res);
 }
 
@@ -438,6 +444,8 @@ enum pkcs11_rc register_persistent_object(struct ck_token *token,
 	       sizeof(struct token_persistent_objs) +
 	       count * sizeof(TEE_UUID);
 
+	MSG("[ta/pkcs11] Register persistent object in database (open/write)");
+
 	res = open_db_file(token, &db_hdl);
 	if (res)
 		goto out;
@@ -462,6 +470,8 @@ enum pkcs11_rc register_persistent_object(struct ck_token *token,
 out:
 	TEE_CloseObject(db_hdl);
 
+	MSG("[ta/pkcs11] Register persistent object in database (completed)");
+
 	return tee2pkcs_error(res);
 }
 
@@ -477,7 +487,11 @@ enum pkcs11_rc load_persistent_object_attributes(struct pkcs11_object *obj)
 	if (obj->attributes)
 		return PKCS11_CKR_OK;
 
+
 	if (hdl == TEE_HANDLE_NULL) {
+
+		MSG("[ta/pkcs11] Load persistent object attributes (open/read/close)");
+
 		res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
 					       obj->uuid, sizeof(*obj->uuid),
 					       TEE_DATA_FLAG_ACCESS_READ, &hdl);
@@ -485,6 +499,8 @@ enum pkcs11_rc load_persistent_object_attributes(struct pkcs11_object *obj)
 			EMSG("OpenPersistent failed %#"PRIx32, res);
 			return tee2pkcs_error(res);
 		}
+	} else {
+		MSG("[ta/pkcs11] Load persistent object attributes (read)");
 	}
 
 	TEE_MemFill(&info, 0, sizeof(info));
@@ -532,6 +548,8 @@ out:
 	if (obj->attribs_hdl == TEE_HANDLE_NULL)
 		TEE_CloseObject(hdl);
 
+	MSG("[ta/pkcs11] Load persistent object attribute (completed)");
+
 	return rc;
 }
 
@@ -549,6 +567,8 @@ enum pkcs11_rc update_persistent_object_attributes(struct pkcs11_object *obj)
 	size_t size = 0;
 
 	assert(obj && obj->attributes);
+
+	MSG("[ta/pkcs11] Update persistent object in database (open/write/close)");
 
 	res = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
 				       obj->uuid, sizeof(*obj->uuid),
@@ -568,6 +588,9 @@ enum pkcs11_rc update_persistent_object_attributes(struct pkcs11_object *obj)
 
 out:
 	TEE_CloseObject(hdl);
+
+	MSG("[ta/pkcs11] Update persistent object in database (completed)");
+
 	return tee2pkcs_error(res);
 }
 
@@ -595,13 +618,15 @@ struct ck_token *init_persistent_db(unsigned int token_id)
 	if (!db_main || !db_objs)
 		goto error;
 
+	MSG("[ta/pkcs11] Initialize token from its persistent database (open/(read)/write/close)");
+
 	res = open_db_file(token, &db_hdl);
 
 	if (res == TEE_SUCCESS) {
 		uint32_t size = 0;
 		size_t idx = 0;
 
-		IMSG("PKCS11 token %u: load db", token_id);
+		MSG("[ta/pkcs11] read existing database");
 
 		size = sizeof(*db_main);
 		res = TEE_ReadObjectData(db_hdl, db_main, size, &size);
@@ -649,7 +674,7 @@ struct ck_token *init_persistent_db(unsigned int token_id)
 	} else if (res == TEE_ERROR_ITEM_NOT_FOUND) {
 		char file[PERSISTENT_OBJECT_ID_LEN] = { };
 
-		IMSG("PKCS11 token %u: init db", token_id);
+		MSG("[ta/pkcs11] create a brand new database");
 
 		TEE_MemFill(db_main, 0, sizeof(*db_main));
 		TEE_MemFill(db_main->label, '*', sizeof(db_main->label));
@@ -701,6 +726,8 @@ struct ck_token *init_persistent_db(unsigned int token_id)
 	token->db_main = db_main;
 	token->db_objs = db_objs;
 	TEE_CloseObject(db_hdl);
+
+	MSG("[ta/pkcs11] Initialize token from its persistent database (completed)");
 
 	return token;
 
