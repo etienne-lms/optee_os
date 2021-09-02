@@ -14,6 +14,7 @@
 #define CLK_SET_RATE_GATE	BIT(0) /* must be gated across rate change */
 #define CLK_SET_PARENT_GATE	BIT(1) /* must be gated across re-parent */
 
+#ifdef CFG_DRIVERS_CLK_CORE
 /**
  * struct clk - Clock structure
  *
@@ -61,17 +62,6 @@ struct clk_ops {
 };
 
 /**
- * Return the clock name
- *
- * @clk: Clock for which the name is needed
- * Return a const char* pointing to the clock name
- */
-static inline const char *clk_get_name(struct clk *clk)
-{
-	return clk->name;
-}
-
-/**
  * clk_alloc - Allocate a clock structure
  *
  * @name: Clock name
@@ -98,6 +88,21 @@ void clk_free(struct clk *clk);
  * Returns a TEE_Result compliant value
  */
 TEE_Result clk_register(struct clk *clk);
+#else
+/*
+ * struct clk is an opaque structure known from the platform clock provider.
+ * plat_clk_*() function prototypes strictly match their clk_*() counterpart.
+ */
+struct clk;
+#endif /* CFG_DRIVERS_CLK_CORE */
+
+/**
+ * Return the clock name
+ *
+ * @clk: Clock for which the name is needed
+ * Return a const char* pointing to the clock name
+ */
+const char *clk_get_name(struct clk *clk);
 
 /**
  * clk_get_rate - Get clock rate
@@ -145,10 +150,7 @@ struct clk *clk_get_parent(struct clk *clk);
  * @clk: Clock for which the number of parents is needed
  * Return the number of parents
  */
-static inline size_t clk_get_num_parents(struct clk *clk)
-{
-	return clk->num_parents;
-}
+size_t clk_get_num_parents(struct clk *clk);
 
 /**
  * Get a clock parent by its index
@@ -167,5 +169,4 @@ struct clk *clk_get_parent_by_index(struct clk *clk, size_t pidx);
  * Returns a TEE_Result compliant value
  */
 TEE_Result clk_set_parent(struct clk *clk, struct clk *parent);
-
 #endif /* __DRIVERS_CLK_H */

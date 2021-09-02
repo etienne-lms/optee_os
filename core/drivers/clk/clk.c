@@ -40,6 +40,11 @@ void clk_free(struct clk *clk)
 	free(clk);
 }
 
+const char *clk_get_name(struct clk *clk)
+{
+	return clk->name;
+}
+
 static bool __maybe_unused clk_check(struct clk *clk)
 {
 	if (!clk->ops)
@@ -217,6 +222,11 @@ TEE_Result clk_set_rate(struct clk *clk, unsigned long rate)
 	cpu_spin_unlock_xrestore(&clk_lock, exceptions);
 
 	return res;
+}
+
+size_t clk_get_num_parents(struct clk *clk)
+{
+	return clk->num_parents;
 }
 
 struct clk *clk_get_parent(struct clk *clk)
