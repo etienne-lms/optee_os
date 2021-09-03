@@ -4,7 +4,10 @@
  */
 
 #include <assert.h>
+#include <config.h>
 #include <drivers/stm32mp1_rcc.h>
+#include <drivers/clk.h>
+#include <drivers/clk_dt.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <initcall.h>
 #include <io.h>
@@ -1231,7 +1234,7 @@ static const char *stm32mp_osc_node_label[NB_OSC] = {
 	[_USB_PHY_48] = "ck_usbo_48m"
 };
 
-static unsigned int clk_freq_prop(void *fdt, int node)
+static unsigned int clk_freq_prop(const void *fdt, int node)
 {
 	const fdt32_t *cuint = NULL;
 	int ret = 0;
@@ -1247,7 +1250,7 @@ static unsigned int clk_freq_prop(void *fdt, int node)
 	return fdt32_to_cpu(*cuint);
 }
 
-static void get_osc_freq_from_dt(void *fdt)
+static void get_osc_freq_from_dt(const void *fdt)
 {
 	enum stm32mp_osc_id idx = _UNKNOWN_OSC_ID;
 	int clk_node = fdt_path_offset(fdt, "/clocks");
@@ -1299,28 +1302,22 @@ static void enable_static_secure_clocks(void)
 		stm32_clock_enable(RTCAPB);
 }
 
-static TEE_Result stm32mp1_clk_early_init(void)
+static void enable_rcc_tzen(void)
 {
-	void *fdt = NULL;
-	int node = 0;
+	io_setbits32(stm32_rcc_base() + RCC_TZCR, RCC_TZCR_TZEN);
+}
+
+static void disable_rcc_tzen(void)
+{
+	IMSG("RCC is non-secure");
+	io_clrbits32(stm32_rcc_base() + RCC_TZCR, RCC_TZCR_TZEN);
+}
+
+static TEE_Result stm32mp1_clk_init(const void *fdt, int node)
+{
 	unsigned int i = 0;
 	int len = 0;
 	int ignored = 0;
-
-	fdt = get_embedded_dt();
-	node = fdt_node_offset_by_compatible(fdt, -1, DT_RCC_CLK_COMPAT);
-
-	if (node < 0 || _fdt_reg_base_address(fdt, node) != RCC_BASE)
-		panic();
-
-	if (_fdt_get_status(fdt, node) & DT_STATUS_OK_SEC) {
-		io_setbits32(stm32_rcc_base() + RCC_TZCR, RCC_TZCR_TZEN);
-	} else {
-		if (io_read32(stm32_rcc_base() + RCC_TZCR) & RCC_TZCR_TZEN)
-			panic("Refuse to release RCC[TZEN]");
-
-		IMSG("RCC is non-secure");
-	}
 
 	get_osc_freq_from_dt(fdt);
 
@@ -1366,5 +1363,156 @@ static TEE_Result stm32mp1_clk_early_init(void)
 	return TEE_SUCCESS;
 }
 
+static TEE_Result stm32mp1_clk_early_init(void)
+{
+	void *fdt = get_embedded_dt();
+	int node = 0;
+	bool rcc_secure = true;
+
+	if (IS_ENABLED(CFG_DRIVERS_CLK) && IS_ENABLED(CFG_DRIVERS_CLK_DT))
+		return TEE_SUCCESS;
+
+	node = fdt_node_offset_by_compatible(fdt, -1, DT_RCC_SECURE_CLK_COMPAT);
+	if (node < 0) {
+		node = fdt_node_offset_by_compatible(fdt, -1, DT_RCC_CLK_COMPAT);
+		if (node < 0)
+			panic();
+
+		rcc_secure = false;
+	}
+
+	assert(_fdt_reg_base_address(fdt, node) == RCC_BASE);
+	assert(_fdt_get_status(fdt, node) & DT_STATUS_OK_SEC);
+
+	if (IS_ENABLED(CFG_STM32_RCC_NON_SECURE) || !rcc_secure) {
+		if (io_read32(stm32_rcc_base() + RCC_TZCR) & RCC_TZCR_TZEN)
+			panic("Refuse to release RCC[TZEN]");
+
+		disable_rcc_tzen();
+	} else {
+		enable_rcc_tzen();
+	}
+
+	return stm32mp1_clk_init(fdt, node);
+}
 service_init(stm32mp1_clk_early_init);
+
+#ifdef _CFG_DRIVERS_CLK_WEAK
+/*
+ * Clock driver API functions
+ */
+static void assert_clk_is_valid(struct clk *clk)
+{
+	uintptr_t va __maybe_unused = (uintptr_t)clk;
+	uintptr_t base __maybe_unused = (uintptr_t)stm32mp1_clk_gate;
+	uintptr_t end __maybe_unused = base + sizeof(stm32mp1_clk_gate);
+
+	assert(va >= base && va < end &&
+	       ((va - base) % sizeof(struct stm32mp1_clk_gate)) == 0);
+}
+
+/* Convert the opaque struct clk reference into driver private clock ID */
+static unsigned int clk2clock_id(struct clk *clk)
+{
+	struct stm32mp1_clk_gate *ref = (void *)clk;
+
+	assert_clk_is_valid(clk);
+
+	return ref->clock_id;
+}
+
+/* Convert the driver private clock ID into its opaque struct clk reference */
+static struct clk *clock_id2clk(unsigned int clock_id)
+{
+	size_t n = 0;
+
+	for (n = 0; n < ARRAY_SIZE(stm32mp1_clk_gate); n++)
+		if (stm32mp1_clk_gate[n].clock_id == clock_id)
+			return (struct clk *)(void *)(stm32mp1_clk_gate + n);
+
+	return NULL;
+}
+
+unsigned int stm32_clock_clk2id(struct clk *clk)
+{
+	return clk2clock_id(clk);
+}
+
+const char *clk_get_name(struct clk *clk __maybe_unused)
+{
+	static const char no_name[] = "n.a";
+
+	assert_clk_is_valid(clk);
+
+	return no_name;
+}
+
+unsigned long clk_get_rate(struct clk *clk)
+{
+	unsigned int clock_id = clk2clock_id(clk);
+
+	return stm32_clock_get_rate(clock_id);
+}
+
+TEE_Result clk_enable(struct clk *clk)
+{
+	unsigned int clock_id = clk2clock_id(clk);
+
+	stm32_clock_enable(clock_id);
+
+	return TEE_SUCCESS;
+}
+
+void clk_disable(struct clk *clk)
+{
+	unsigned int clock_id = clk2clock_id(clk);
+
+	stm32_clock_disable(clock_id);
+}
+
+static struct clk *stm32mp1_clk_dt_get_clk(struct dt_driver_phandle_args *pargs,
+					    void *data __unused)
+{
+	if (pargs->args_count != 1)
+		return NULL;
+
+	IMSG("dt get clock: found clock %u", pargs->args[0]);
+
+	return clock_id2clk(pargs->args[0]);
+}
+
+static const uint8_t non_secure_rcc;
+
+static TEE_Result stm32mp1_clock_provider_probe(const void *fdt, int offs,
+						const void *compat_data)
+{
+	TEE_Result res = TEE_ERROR_GENERIC;
+
+	if (IS_ENABLED(CFG_STM32_RCC_NON_SECURE) ||
+	    compat_data == &non_secure_rcc)
+		disable_rcc_tzen();
+	else
+		enable_rcc_tzen();
+
+	res = stm32mp1_clk_init(fdt, offs);
+	if (res)
+		return res;
+
+	return clk_dt_register_clk_provider(fdt, offs, stm32mp1_clk_dt_get_clk,
+					    NULL);
+}
+
+static const struct dt_device_match stm32mp1_clock_match_table[] = {
+	{  .compatible = "st,stm32mp1-rcc", .compat_data = &non_secure_rcc, },
+	{  .compatible = "st,stm32mp1-rcc-secure", },
+	{ }
+};
+
+const struct dt_driver stm32mp1_clock_dt_driver __dt_driver = {
+	.name = "stm32mp1_clock",
+	.type = DT_DRIVER_CLK,
+	.match_table = stm32mp1_clock_match_table,
+	.probe = stm32mp1_clock_provider_probe,
+};
+#endif /*_CFG_DRIVERS_CLK_WEAK*/
 #endif /*CFG_EMBED_DTB*/

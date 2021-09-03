@@ -108,6 +108,9 @@ $(call force,CFG_SCMI_MSG_SMT,y)
 $(call force,CFG_SCMI_MSG_VOLTAGE_DOMAIN,y)
 endif
 
+# Default disable RCC security
+CFG_STM32_RCC_NON_SECURE ?= y
+
 # Default enable some test facitilites
 CFG_TEE_CORE_EMBED_INTERNAL_TESTS ?= y
 CFG_WITH_STATS ?= y
