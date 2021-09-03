@@ -50,6 +50,7 @@ struct dt_node_info {
 
 struct dt_device_match {
 	const char *compatible;
+	const void *compat_data;
 };
 
 enum dt_driver_type {
