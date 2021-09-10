@@ -6,167 +6,20 @@
 #include <assert.h>
 #include <drivers/clk.h>
 #include <drivers/clk_dt.h>
+#include <kernel/dt_driver.h>
 #include <initcall.h>
 #include <kernel/boot.h>
 #include <kernel/panic.h>
 #include <libfdt.h>
 #include <stddef.h>
 
-struct clk_dt_provider {
-	int nodeoffset;
-	unsigned int clock_cells;
-	uint32_t phandle;
-	struct clk *(*get_of_clk)(struct clk_dt_phandle_args *args, void *data);
-	void *data;
-	SLIST_ENTRY(clk_dt_provider) link;
-};
-
-static SLIST_HEAD(, clk_dt_provider) clk_dt_provider_list =
-				SLIST_HEAD_INITIALIZER(clk_dt_provider_list);
-
-static uint32_t fdt_clock_cells(const void *fdt, int nodeoffset)
-{
-	const fdt32_t *c = NULL;
-	int len = 0;
-
-	c = fdt_getprop(fdt, nodeoffset, "#clock-cells", &len);
-	if (!c)
-		return len;
-
-	if (len != sizeof(*c))
-		return -FDT_ERR_BADNCELLS;
-
-	return fdt32_to_cpu(*c);
-}
-
-TEE_Result clk_dt_register_clk_provider(const void *fdt, int nodeoffset,
-					struct clk *(get_of_clk)(struct clk_dt_phandle_args *, void *),
-					void *data)
-{
-	struct clk_dt_provider *prv = NULL;
-
-	prv = calloc(1, sizeof(*prv));
-	if (!prv)
-		return TEE_ERROR_OUT_OF_MEMORY;
-
-	prv->get_of_clk = get_of_clk;
-	prv->data = data;
-	prv->nodeoffset = nodeoffset;
-	prv->clock_cells = fdt_clock_cells(fdt, nodeoffset);
-	prv->phandle = fdt_get_phandle(fdt, nodeoffset);
-
-	SLIST_INSERT_HEAD(&clk_dt_provider_list, prv, link);
-
-	return TEE_SUCCESS;
-}
-
-static TEE_Result clk_dt_release_provider(void)
-{
-	struct clk_dt_provider *prv = NULL;
-
-	while (!SLIST_EMPTY(&clk_dt_provider_list)) {
-		prv = SLIST_FIRST(&clk_dt_provider_list);
-		SLIST_REMOVE_HEAD(&clk_dt_provider_list, link);
-		free(prv);
-	}
-
-	return TEE_SUCCESS;
-}
-
-driver_init_late(clk_dt_release_provider);
-
-static struct clk_dt_provider *clk_get_provider_by_node(int nodeoffset)
-{
-	struct clk_dt_provider *prv = NULL;
-
-	SLIST_FOREACH(prv, &clk_dt_provider_list, link)
-		if (prv->nodeoffset == nodeoffset)
-			return prv;
-
-	return NULL;
-}
-
-static struct clk_dt_provider *clk_get_provider_by_phandle(uint32_t phandle)
-{
-	struct clk_dt_provider *prv = NULL;
-
-	SLIST_FOREACH(prv, &clk_dt_provider_list, link) {
-		if (prv->phandle == phandle)
-			return prv;
-	}
-
-	return NULL;
-}
-
-static struct clk *clk_dt_get_from_provider(struct clk_dt_provider *prv,
-					    unsigned int clock_cells,
-					    const uint32_t *prop)
-{
-	unsigned int arg = 0;
-	struct clk *clk = NULL;
-	struct clk_dt_phandle_args pargs = { };
-
-	pargs.args_count = clock_cells;
-	pargs.args = calloc(pargs.args_count, sizeof(uint32_t));
-	if (!pargs.args)
-		return NULL;
-
-	for (arg = 0; arg < clock_cells; arg++)
-		pargs.args[arg] = fdt32_to_cpu(prop[arg + 1]);
-
-	clk = prv->get_of_clk(&pargs, prv->data);
-	free(pargs.args);
-
-	return clk;
-}
-
-struct clk *clk_dt_get_by_name(const void *fdt, int nodeoffset,
-			       const char *name)
-{
-	int clk_id = 0;
-
-	clk_id = fdt_stringlist_search(fdt, nodeoffset, "clock-names", name);
-	if (clk_id < 0)
-		return NULL;
-
-	return clk_dt_get_by_idx(fdt, nodeoffset, clk_id);
-}
-
 static struct clk *clk_dt_get_by_idx_prop(const char *prop_name,
 					  const void *fdt, int nodeoffset,
 					  unsigned int clk_idx)
 {
-	int len = 0;
-	int idx = 0;
-	int idx32 = 0;
-	int clock_cells = 0;
-	uint32_t phandle = 0;
-	const uint32_t *prop = NULL;
-	struct clk_dt_provider *prv = NULL;
-
-	prop = fdt_getprop(fdt, nodeoffset, prop_name, &len);
-	if (!prop)
-		return NULL;
-
-	while (idx < len) {
-		idx32 = idx / sizeof(uint32_t);
-		phandle = fdt32_to_cpu(prop[idx32]);
-
-		prv = clk_get_provider_by_phandle(phandle);
-		if (!prv)
-			return NULL;
-
-		clock_cells = prv->clock_cells;
-		if (clk_idx) {
-			clk_idx--;
-			idx += sizeof(phandle) + clock_cells * sizeof(uint32_t);
-			continue;
-		}
-
-		return clk_dt_get_from_provider(prv, clock_cells, &prop[idx32]);
-	}
-
-	return NULL;
+	void *device = dt_driver_device_from_node_idx_prop(prop_name, fdt,
+							   nodeoffset, clk_idx);
+	return (struct clk *)device;
 }
 
 struct clk *clk_dt_get_by_idx(const void *fdt, int nodeoffset,
@@ -186,35 +39,7 @@ struct clk *clk_dt_get_by_name(const void *fdt, int nodeoffset,
 	return clk_dt_get_by_idx(fdt, nodeoffset, idx);
 }
 
-static TEE_Result clk_probe_clock_provider_node(const void *fdt, int node);
-
-static const struct clk_driver *clk_get_compatible_driver(
-					const char *compat,
-					const struct dt_device_match **out_dm)
-{
-	const struct dt_driver *drv = NULL;
-	const struct dt_device_match *dm = NULL;
-	const struct clk_driver *clk_drv = NULL;
-
-	for_each_dt_driver(drv) {
-		if (drv->type != DT_DRIVER_CLK)
-			continue;
-
-		clk_drv = (const struct clk_driver *)drv->driver;
-		for (dm = drv->match_table; dm && dm->compatible; dm++) {
-			if (strcmp(dm->compatible, compat) == 0) {
-				if (out_dm)
-					*out_dm = dm;
-
-				return clk_drv;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-/* Recursively called from parse_clock_property() */
+/* Recursively called through parse_clock_property() */
 static TEE_Result clk_probe_clock_provider_node(const void *fdt, int node);
 
 static TEE_Result parse_clock_property(const void *fdt, int node)
@@ -239,53 +64,17 @@ static TEE_Result parse_clock_property(const void *fdt, int node)
 		if (parent_node < 0)
 			return TEE_ERROR_GENERIC;
 
-		/* Parent setup should not fail or clock won't be available */
+		/* Parent probe should not fail or clock won't be available */
 		res = clk_probe_clock_provider_node(fdt, parent_node);
 		if (res)
-			panic("Failed to setup parent clock");
+			panic("Failed to probe parent clock");
 
-		clock_cells = fdt_clock_cells(fdt, parent_node);
+		clock_cells = fdt_get_dt_driver_cells(fdt, parent_node,
+						      DT_DRIVER_CLK);
 		idx += 1 + clock_cells;
 	}
 
 	return TEE_SUCCESS;
-}
-
-static TEE_Result clk_dt_node_clock_setup_driver(const void *fdt, int node)
-{
-	int idx = 0;
-	int len = 0;
-	int count = 0;
-	const char *compat = NULL;
-	TEE_Result res = TEE_ERROR_GENERIC;
-	const struct clk_driver *clk_drv = NULL;
-	const struct dt_device_match *dm = NULL;
-
-	count = fdt_stringlist_count(fdt, node, "compatible");
-	if (count < 0)
-		return TEE_ERROR_GENERIC;
-
-	for (idx = 0; idx < count; idx++) {
-		compat = fdt_stringlist_get(fdt, node, "compatible", idx,
-					    &len);
-		if (!compat)
-			return TEE_ERROR_GENERIC;
-
-		clk_drv = clk_get_compatible_driver(compat, &dm);
-		if (!clk_drv)
-			continue;
-
-		res = clk_drv->probe(fdt, node);
-		if (res != TEE_SUCCESS) {
-			EMSG("Failed to probe clock driver for compatible %s",
-			     compat);
-			panic();
-		} else {
-			return TEE_SUCCESS;
-		}
-	}
-
-	return TEE_ERROR_GENERIC;
 }
 
 static TEE_Result clk_probe_clock_provider_node(const void *fdt, int node)
@@ -303,15 +92,15 @@ static TEE_Result clk_probe_clock_provider_node(const void *fdt, int node)
 		return TEE_ERROR_ITEM_NOT_FOUND;
 
 	/* Check if node has already been probed */
-	if (clk_get_provider_by_node(node))
+	if (dt_driver_get_provider_by_node(node))
 		return TEE_SUCCESS;
 
-	/* Check if the node has a clock property first to setup parent */
+	/* Check if the node has a clock property first to probe parent */
 	res = parse_clock_property(fdt, node);
 	if (res)
 		return res;
 
-	return clk_dt_node_clock_setup_driver(fdt, node);
+	return dt_driver_probe_device_by_node(fdt, node, DT_DRIVER_CLK);
 }
 
 static void clk_probe_node(const void *fdt, int parent_node)

@@ -7,30 +7,9 @@
 #define __DRIVERS_CLK_DT_H
 
 #include <kernel/dt.h>
+#include <kernel/dt_driver.h>
 #include <stdint.h>
 #include <sys/queue.h>
-
-#define MAX_CLK_PHANDLE_ARGS 3
-
-/**
- * struct clk_dt_phandle_args - Devicetree clock args
- * @nodeoffset: Clock consumer node offset
- * @args_count: Count of cells for the clock
- * @args: Clocks consumer specifiers
- */
-struct clk_dt_phandle_args {
-	int nodeoffset;
-	int args_count;
-	uint32_t *args;
-};
-
-/**
- * struct clk_driver - clk driver setup struct
- * probe: probe function for the clock driver
- */
-struct clk_driver {
-	TEE_Result (*probe)(const void *fdt, int nodeoffset);
-};
 
 /**
  * CLK_DT_DECLARE - Declare a clock driver
@@ -39,7 +18,7 @@ struct clk_driver {
  * @__probe: Clock probe function
  */
 #define CLK_DT_DECLARE(__name, __compat, __probe) \
-	static const struct clk_driver __name ## _driver = { \
+	static const struct dt_driver_setup __name ## _driver = { \
 		.probe = __probe, \
 	}; \
 	static const struct dt_device_match __name ## _match_table[] = { \
@@ -87,16 +66,24 @@ struct clk *clk_dt_get_by_name(const void *fdt, int nodeoffset,
  * @data: Data which will be passed to the get_dt_clk callback
  * Returns TEE_Result value
  */
+static inline
 TEE_Result clk_dt_register_clk_provider(const void *fdt, int nodeoffset,
-					struct clk *(*get_dt_clk)(struct clk_dt_phandle_args *args, void *data),
-					void *data);
+		struct clk *(*get_dt_clk)(struct dt_driver_phandle_args *args,
+					  void *data),
+		void *data)
+{
+	return dt_driver_register_provider(fdt, nodeoffset,
+					   (get_of_device_func *)get_dt_clk,
+					   data, DT_DRIVER_CLK);
+}
 
 /**
  * clk_dt_get_simple_clk: simple clock matching function for single clock
  * providers
  */
-static inline struct clk *clk_dt_get_simple_clk(struct clk_dt_phandle_args *args __unused,
-						void *data)
+static inline
+struct clk *clk_dt_get_simple_clk(struct dt_driver_phandle_args *args __unused,
+				  void *data)
 {
 	return data;
 }
