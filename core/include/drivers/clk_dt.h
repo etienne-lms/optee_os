@@ -18,9 +18,6 @@
  * @__probe: Clock probe function
  */
 #define CLK_DT_DECLARE(__name, __compat, __probe) \
-	static const struct dt_driver_setup __name ## _driver = { \
-		.probe = __probe, \
-	}; \
 	static const struct dt_device_match __name ## _match_table[] = { \
 		{ .compatible = __compat }, \
 		{ } \
@@ -29,7 +26,7 @@
 		.name = # __name, \
 		.type = DT_DRIVER_CLK, \
 		.match_table = __name ## _match_table, \
-		.driver = &__name ## _driver, \
+		.probe = __probe, \
 	}
 
 /**

@@ -195,25 +195,21 @@ void *dt_driver_device_from_node_idx_prop(const char *prop_name,
 	return NULL;
 }
 
-static TEE_Result probe_device_by_compat(const void *fdt, int nodeoffset,
+/* Lookup a compatible driver, possibly of a specific @type, for the FDT node */
+static TEE_Result probe_device_by_compat(const void *fdt, int node,
 					 const char *compat,
 					 enum dt_driver_type type)
 {
 	const struct dt_driver *drv = NULL;
 	const struct dt_device_match *dm = NULL;
-	const struct dt_driver_setup *drv_setup = NULL;
 
 	for_each_dt_driver(drv) {
 		if (drv->type != type)
 			continue;
 
-		drv_setup = (const struct dt_driver_setup *)drv->driver;
-		assert(drv_setup);
-
 		for (dm = drv->match_table; dm && dm->compatible; dm++)
 			if (strcmp(dm->compatible, compat) == 0)
-				return drv_setup->probe(fdt, nodeoffset,
-							dm->compat_data);
+				return drv->probe(fdt, node, dm->compat_data);
 	}
 
 	return TEE_ERROR_ITEM_NOT_FOUND;

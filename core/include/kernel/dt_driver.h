@@ -9,6 +9,7 @@
 #include <kernel/dt.h>
 #include <stdint.h>
 #include <sys/queue.h>
+#include <tee_api_types.h>
 
 struct dt_driver_provider;
 
@@ -35,29 +36,6 @@ struct dt_driver_phandle_args {
  */
 typedef void *(get_of_device_func)(struct dt_driver_phandle_args *parg,
 				   void *data);
-
-/*
- * dt_driver_probe_func - Callback probe function for a driver.
- *
- * @fdt; FDT base address
- * @nodeoffset: Offset of the node in the FDT
- * @compat_data: Data registered for the compatible that probed the device
- *
- * Return TEE_SUCCESS on successfull probe,
- *	TEE_ERROR_ITEM_NOT_FOUND when no driver matched node's compatible string
- *	Any other TEE_ERROR_* compliant code.
- */
-typedef TEE_Result (*dt_driver_probe_func)(const void *fdt, int nodeoffset,
-					   const void *compat_data);
-
-/**
- * struct dt_driver_setup - Generic driver setup structure
- * @probe: Refer to typedef'ed dt_driver_probe_func
- */
-struct dt_driver_setup {
-	TEE_Result (*probe)(const void *fdt, int nodeoffset,
-			    const void *compat_data);
-};
 
 /**
  * dt_driver_register_provider - Register a driver provider
@@ -138,6 +116,4 @@ unsigned int dt_driver_provider_cells(struct dt_driver_provider *prv);
 
 int fdt_get_dt_driver_cells(const void *fdt, int nodeoffset,
 			    enum dt_driver_type type);
-
-
 #endif /* __DT_DRIVER_H */
