@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 /*
  * Copyright (c) 2021, Bootlin
+ * Copyright (c) 2021, Linaro Limited
+ * Copyright (c) 2021, STMicroelectronics
  */
 
 #ifndef __DT_DRIVER_H
@@ -116,4 +118,12 @@ unsigned int dt_driver_provider_cells(struct dt_driver_provider *prv);
 
 int fdt_get_dt_driver_cells(const void *fdt, int nodeoffset,
 			    enum dt_driver_type type);
+
+/*
+ * Called by bus like nodes to propose a node for dt_driver probing
+ *
+ * @fdt: FDT base address
+ * @nodeoffset: Node offset on the FDT for the device
+ */
+TEE_Result dt_driver_maybe_add_probe_node(const void *fdt, int nodeoffset);
 #endif /* __DT_DRIVER_H */
