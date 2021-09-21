@@ -85,4 +85,4 @@ static TEE_Result load_trampoline(void)
 	return TEE_SUCCESS;
 }
 
-boot_final(load_trampoline);
+release_init_resource(load_trampoline);
