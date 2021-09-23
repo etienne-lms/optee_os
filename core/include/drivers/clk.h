@@ -20,10 +20,14 @@
  *
  * CLK_OP_ELT identies a full fledged clock. The struct clk * reference can be
  * cast to struct clk_elt * to access clock element data.
+ *
+ * CLK_OP_ORPHAN identifes a simple clock without parents. struct clk fully
+ * represents the clock.
  */
 enum clk_ops_id {
 	CLK_OPS_INVALID = 0,
 	CLK_OPS_ELT,
+	CLK_OPS_ORPHAN,
 };
 
 /**
@@ -81,6 +85,7 @@ struct clk_ops {
 			       unsigned long parent_rate);
 	unsigned long (*get_rate)(struct clk *clk,
 				  unsigned long parent_rate);
+	const char *(*get_name)(struct clk *clk);
 };
 
 /*
@@ -96,6 +101,11 @@ static inline struct clk_elt *clk_to_clk_elt(struct clk *clk)
 	assert(clk_is_clk_elt(clk));
 
 	return (struct clk_elt *)clk;
+}
+
+static inline bool clk_is_clk_orphan(struct clk *clk)
+{
+	return clk->ops->id == CLK_OPS_ORPHAN;
 }
 
 /**
@@ -120,6 +130,16 @@ const char *clk_get_name(struct clk *clk);
  */
 struct clk *clk_alloc(const char *name, const struct clk_ops *ops,
 		      struct clk **parent_clks, size_t parent_count);
+
+/**
+ * clk_alloc_orphans - Allocate an array of orphan clocks (1 or more)
+ *
+ * @ops: Clock operations
+ * @count: Number of clocks
+ *
+ * Returns a clock struct properly initialized or NULL if allocation failed
+ */
+struct clk *clk_alloc_orphans(const struct clk_ops *ops, size_t count);
 
 /**
  * clk_free - Free a clock structure

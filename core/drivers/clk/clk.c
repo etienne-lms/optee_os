@@ -41,6 +41,25 @@ struct clk *clk_alloc(const char *name, const struct clk_ops *ops,
 	return (struct clk *)clk_elt;
 }
 
+struct clk *clk_alloc_orphans(const struct clk_ops *ops, size_t count)
+{
+	struct clk *clk = NULL;
+	size_t n = 0;
+
+	assert(ops->id == CLK_OPS_ORPHAN);
+
+	clk = calloc(count, sizeof(*clk));
+	if (!clk)
+		return NULL;
+
+	for (n = 0; n < count; n++) {
+		clk[n].ops = ops;
+		refcount_set(&clk[n].enabled_count, 0);
+	}
+
+	return clk;
+}
+
 void clk_free(struct clk *clk)
 {
 	free(clk);
@@ -59,7 +78,7 @@ static bool __maybe_unused clk_check(struct clk *clk)
 
 		if (clk_elt->num_parents > 1 && !clk->ops->get_parent)
 			return false;
-	} else {
+	} else if (!clk_is_clk_orphan(clk)) {
 		return false;
 	}
 
@@ -119,7 +138,8 @@ TEE_Result clk_register(struct clk *clk)
 
 	clk_compute_rate_no_lock(clk);
 
-	DMSG("Registered clock %s, freq %lu", clk_get_name(clk),
+	DMSG("Registered %sclock %s, freq %lu",
+	     clk_is_clk_orphan(clk) ? "orphan" : "", clk_get_name(clk),
 	     clk_get_rate(clk));
 
 	return TEE_SUCCESS;
@@ -127,8 +147,11 @@ TEE_Result clk_register(struct clk *clk)
 
 const char *clk_get_name(struct clk *clk)
 {
-	if (clk_is_clk_elt(clk))
+	if (clk_is_clk_elt(clk) && clk_to_clk_elt(clk)->name)
 		return clk_to_clk_elt(clk)->name;
+
+	if (clk->ops->get_name)
+		return clk->ops->get_name(clk);
 
 	return NULL;
 }
@@ -147,6 +170,9 @@ static void clk_disable_no_lock(struct clk *clk)
 
 	if (clk->ops->disable)
 		clk->ops->disable(clk);
+
+	if (clk_is_clk_orphan(clk))
+		return;
 
 	parent = clk_get_parent(clk);
 	if (parent)
@@ -342,11 +368,12 @@ TEE_Result clk_set_parent(struct clk *clk, struct clk *parent)
 	clk_elt = clk_to_clk_elt(clk);
 
 	exceptions = cpu_spin_lock_xsave(&clk_lock);
+
 	if (clk_elt->flags & CLK_SET_PARENT_GATE && clk_is_enabled_no_lock(clk))
 		res = TEE_ERROR_BAD_STATE;
 	else
 		res = clk_set_parent_no_lock(clk, parent, pidx);
-out:
+
 	cpu_spin_unlock_xrestore(&clk_lock, exceptions);
 
 	return res;
