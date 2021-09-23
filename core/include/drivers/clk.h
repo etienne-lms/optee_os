@@ -6,6 +6,7 @@
 #ifndef __DRIVERS_CLK_H
 #define __DRIVERS_CLK_H
 
+#include <assert.h>
 #include <kernel/refcount.h>
 #include <stdint.h>
 #include <tee_api_types.h>
@@ -14,34 +15,55 @@
 #define CLK_SET_RATE_GATE	BIT(0) /* must be gated across rate change */
 #define CLK_SET_PARENT_GATE	BIT(1) /* must be gated across re-parent */
 
-/**
- * struct clk - Clock structure
+/*
+ * Type of clock instancied:
  *
- * @name: Clock name
+ * CLK_OP_ELT identies a full fledged clock. The struct clk * reference can be
+ * cast to struct clk_elt * to access clock element data.
+ */
+enum clk_ops_id {
+	CLK_OPS_INVALID = 0,
+	CLK_OPS_ELT,
+};
+
+/**
+ * struct clk - Clock core structure, common to all clocks
+ *
  * @priv: Private data for the clock provider
  * @ops: Clock operations
- * @parent: Current parent
- * @num_parents: Number of parents
  * @rate: Current clock rate (cached after init or rate change)
- * @flags: Specific clock flags
  * @enabled_count: Enable/disable reference counter
- * @parents: Array of parents of the clock
  */
 struct clk {
-	const char *name;
 	void *priv;
 	const struct clk_ops *ops;
-	struct clk *parent;
 	unsigned long rate;
-	unsigned int flags;
 	struct refcount enabled_count;
+};
+
+/**
+ * struct clk_elt - Full fleged clock element
+ *
+ * @clk: Clock core structure
+ * @name: Clock name
+ * @flags: Specific clock flags
+ * @parent: Current parent
+ * @num_parents: Number of parents
+ * @parents: Array of parents of the clock
+ */
+struct clk_elt {
+	/* Must start with generic struct clk */
+	struct clk clk;
+	const char *name;
+	unsigned int flags;
+	struct clk *parent;
 	size_t num_parents;
 	struct clk *parents[];
 };
 
 /**
- * struct clk_ops
- *
+ * struct clk_ops - Clock operations
+ * @id: Indentifier of the ops type (actually not an operator)
  * @enable: Enable the clock
  * @disable: Disable the clock
  * @set_parent: Set the clock parent based on index
@@ -50,6 +72,7 @@ struct clk {
  * @get_rate: Get the clock rate
  */
 struct clk_ops {
+	enum clk_ops_id id;
 	TEE_Result (*enable)(struct clk *clk);
 	void (*disable)(struct clk *clk);
 	TEE_Result (*set_parent)(struct clk *clk, size_t index);
@@ -60,6 +83,21 @@ struct clk_ops {
 				  unsigned long parent_rate);
 };
 
+/*
+ * Helper to identify clock operator type
+ */
+static inline bool clk_is_clk_elt(struct clk *clk)
+{
+	return clk->ops->id == CLK_OPS_ELT;
+}
+
+static inline struct clk_elt *clk_to_clk_elt(struct clk *clk)
+{
+	assert(clk_is_clk_elt(clk));
+
+	return (struct clk_elt *)clk;
+}
+
 /**
  * Return the clock name
  *
@@ -69,14 +107,16 @@ struct clk_ops {
 const char *clk_get_name(struct clk *clk);
 
 /**
- * clk_alloc - Allocate a clock structure
+ * clk_alloc - Allocate a clock element structure
  *
  * @name: Clock name
  * @ops: Clock operations
  * @parent_clks: Parents of the clock
  * @parent_count: Number of parents of the clock
  *
- * Returns a clock struct properly initialized or NULL if allocation failed
+ * Returns a struct clk * or NULL if allocation failed.
+ * The return address actually points to a struct clk_elt instance.
+ * One can use clk_to_clk_elt() to convert the reference type.
  */
 struct clk *clk_alloc(const char *name, const struct clk_ops *ops,
 		      struct clk **parent_clks, size_t parent_count);

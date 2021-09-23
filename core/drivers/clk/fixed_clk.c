@@ -22,6 +22,7 @@ static unsigned long fixed_clk_get_rate(struct clk *clk,
 }
 
 static const struct clk_ops fixed_clk_clk_ops = {
+	.id = CLK_OPS_ELT,
 	.get_rate = fixed_clk_get_rate,
 };
 
