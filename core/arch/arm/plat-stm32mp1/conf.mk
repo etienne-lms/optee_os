@@ -104,7 +104,11 @@ endif
 CFG_DRIVERS_RSTCTRL ?= $(CFG_STM32_RSTCTRL)
 $(eval $(call cfg-depends-all,CFG_STM32_RSTCTRL,CFG_DRIVERS_RSTCTRL))
 
+# Watchdog services for the non-secure world
 CFG_WDT ?= $(CFG_STM32_IWDG)
+CFG_WDT_EXTEND_TIMEOUT ?= $(CFG_WDT)
+CFG_WDT_EXTEND_TIMEOUT_MAX_SEC ?= 300
+$(call force,CFG_GENERIC_TIMER_GIC_INTD,29)
 
 # Platform specific configuration
 CFG_STM32MP_PANIC_ON_TZC_PERM_VIOLATION ?= y
