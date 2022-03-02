@@ -819,3 +819,22 @@ endif
 # extension. When set to 'n', the plat_get_freq() function must be defined by
 # the platform code
 CFG_CORE_HAS_GENERIC_TIMER ?= y
+
+# CFG_WDT_EXTEND_IMEOUT allows OP-TEE to refresh watchdog using a timer
+# interrupt for boot time cases when non-secure world is not able to refresh
+# the watchdog before watchdog max physically programmable timeout expires.
+# This may happen during boot stage to operating system transition.
+#
+# CFG_WDT_EXTEND_TIMEOUT_MAX_SEC sets the max authorised relay period
+# in seconds. Default configuration value is 5 minutes.
+#
+# Current implementation relies on generic timer interrupt to refresh the
+# watchdog for the given period of time. CFG_GENERIC_TIMER_GIC_INTD shall
+# provide the platform generic timer interrupt.
+CFG_WDT_EXTEND_TIMEOUT ?= n
+ifeq ($(CFG_WDT_EXTEND_TIMEOUT),y)
+CFG_WDT_EXTEND_TIMEOUT_MAX_SEC ?= 300
+CFG_GENERIC_TIMER_GIC_INTD ?= 0
+$(eval $(call cfg-depends-all,CFG_WDT_EXTEND_TIMEOUT,\
+	 CFG_CORE_HAS_GENERIC_TIMER))
+endif
