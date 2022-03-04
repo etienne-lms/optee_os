@@ -12,6 +12,7 @@
 #include <drivers/stm32_iwdg.h>
 #include <drivers/stm32_uart.h>
 #include <drivers/stm32mp1_etzpc.h>
+#include <drivers/wdt.h>
 #include <dt-bindings/clock/stm32mp1-clks.h>
 #include <kernel/boot.h>
 #include <kernel/dt.h>
@@ -163,8 +164,38 @@ void main_init_gic(void)
 	stm32mp_register_online_cpu();
 }
 
+#ifdef CFG_WDT_EXTEND_TIMEOUT
+/*
+ * Arm generic timer interrupt can be used on this platform only while
+ * only primary boot core is executing before secondary core GIC is
+ * initialized.
+ */
+static bool boot_core_gentimer_available = true;
+
+bool watchdog_extend_timeout_timer_is_available(void)
+{
+	return boot_core_gentimer_available;
+}
+
+static void disable_watchdog_extend_timeout_support(void)
+{
+	boot_core_gentimer_available = false;
+	watchdog_extend_timeout(0);
+}
+#else
+static void disable_watchdog_extend_timeout_support(void)
+{
+}
+#endif
+
 void main_secondary_init_gic(void)
 {
+	/*
+	 * We must disable extended watchdog timeout based on generic timer
+	 * before secondary CPU GIC is configured
+	 */
+	disable_watchdog_extend_timeout_support();
+
 	gic_cpu_init(&gic_data);
 
 	stm32mp_register_online_cpu();
