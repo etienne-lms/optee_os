@@ -106,6 +106,7 @@ $(eval $(call cfg-depends-all,CFG_STM32_RSTCTRL,CFG_DRIVERS_RSTCTRL))
 
 # Watchdog services for the non-secure world
 CFG_WDT ?= $(CFG_STM32_IWDG)
+CFG_WATCHDOG_PTA ?= $(CFG_WDT)
 CFG_WDT_EXTEND_TIMEOUT ?= $(CFG_WDT)
 CFG_WDT_EXTEND_TIMEOUT_MAX_SEC ?= 300
 $(call force,CFG_GENERIC_TIMER_GIC_INTD,29)
