@@ -548,8 +548,9 @@ static TEE_Result tee_rpmb_req_pack(struct rpmb_req *req,
 				    const uint8_t *fek, const TEE_UUID *uuid)
 {
 	TEE_Result res = TEE_ERROR_GENERIC;
-	int i;
-	struct rpmb_data_frame *datafrm;
+	int i = 0;
+	struct rpmb_data_frame *datafrm = NULL;
+	bool datafrm_mempool = false;
 
 	if (!req || !rawdata || !nbr_frms)
 		return TEE_ERROR_BAD_PARAMETERS;
@@ -569,7 +570,14 @@ static TEE_Result tee_rpmb_req_pack(struct rpmb_req *req,
 	req->dev_id = dev_id;
 
 	/* Allocate memory for construct all data packets and calculate MAC. */
-	datafrm = calloc(nbr_frms, RPMB_DATA_FRAME_SIZE);
+	if (nbr_frms * RPMB_DATA_FRAME_SIZE >= 512) {
+		datafrm = mempool_alloc(mempool_default,
+					nbr_frms * RPMB_DATA_FRAME_SIZE);
+		datafrm_mempool = true;
+	} else {
+		datafrm = calloc(nbr_frms, RPMB_DATA_FRAME_SIZE);
+	}
+
 	if (!datafrm)
 		return TEE_ERROR_OUT_OF_MEMORY;
 
@@ -642,7 +650,11 @@ static TEE_Result tee_rpmb_req_pack(struct rpmb_req *req,
 
 	res = TEE_SUCCESS;
 func_exit:
-	free(datafrm);
+	if (datafrm_mempool)
+		mempool_free(mempool_default, datafrm);
+	else
+		free(datafrm);
+
 	return res;
 }
 
@@ -1473,9 +1485,10 @@ static TEE_Result tee_rpmb_write(uint16_t dev_id, uint32_t addr,
 {
 	TEE_Result res = TEE_ERROR_GENERIC;
 	uint8_t *data_tmp = NULL;
-	uint16_t blk_idx;
-	uint16_t blkcnt;
-	uint8_t byte_offset;
+	uint16_t blk_idx = 0;
+	uint16_t blkcnt = 0;
+	uint8_t byte_offset = 0;
+	bool data_tmp_mempool = false;
 
 	blk_idx = addr / RPMB_DATA_SIZE;
 	byte_offset = addr % RPMB_DATA_SIZE;
@@ -1489,7 +1502,13 @@ static TEE_Result tee_rpmb_write(uint16_t dev_id, uint32_t addr,
 		if (res != TEE_SUCCESS)
 			goto func_exit;
 	} else {
-		data_tmp = calloc(blkcnt, RPMB_DATA_SIZE);
+		if (blkcnt * RPMB_DATA_SIZE >= 512) {
+			data_tmp = mempool_alloc(mempool_default, blkcnt * RPMB_DATA_SIZE);
+			data_tmp_mempool = true;
+		} else {
+			data_tmp = calloc(blkcnt, RPMB_DATA_SIZE);
+		}
+
 		if (!data_tmp) {
 			res = TEE_ERROR_OUT_OF_MEMORY;
 			goto func_exit;
@@ -1513,7 +1532,11 @@ static TEE_Result tee_rpmb_write(uint16_t dev_id, uint32_t addr,
 	res = TEE_SUCCESS;
 
 func_exit:
-	free(data_tmp);
+	if (data_tmp_mempool)
+		mempool_free(mempool_default, data_tmp);
+	else
+		free(data_tmp);
+
 	return res;
 }
 
@@ -2706,12 +2729,13 @@ static  TEE_Result rpmb_fs_rename(struct tee_pobj *old, struct tee_pobj *new,
 static TEE_Result rpmb_fs_truncate(struct tee_file_handle *tfh, size_t length)
 {
 	struct rpmb_file_handle *fh = (struct rpmb_file_handle *)tfh;
-	tee_mm_pool_t p;
+	tee_mm_pool_t p = { };
 	bool pool_result = false;
-	tee_mm_entry_t *mm;
-	uint32_t newsize;
+	tee_mm_entry_t *mm = NULL;
+	uint32_t newsize = 0;
 	uint8_t *newbuf = NULL;
-	uintptr_t newaddr;
+	bool newbuf_mempool = false;
+	uintptr_t newaddr = 0;
 	TEE_Result res = TEE_ERROR_GENERIC;
 	paddr_size_t pool_sz = 0;
 
@@ -2745,7 +2769,14 @@ static TEE_Result rpmb_fs_truncate(struct tee_file_handle *tfh, size_t length)
 			goto out;
 
 		mm = tee_mm_alloc(&p, newsize);
-		newbuf = calloc(1, newsize);
+
+		if (newsize >= 512) {
+			newbuf = mempool_alloc(mempool_default, newsize);
+			newbuf_mempool = true;
+		} else {
+			newbuf = calloc(1, newsize);
+		}
+
 		if (!mm || !newbuf) {
 			res = TEE_ERROR_OUT_OF_MEMORY;
 			goto out;
@@ -2780,7 +2811,9 @@ out:
 	mutex_unlock(&rpmb_mutex);
 	if (pool_result)
 		tee_mm_final(&p);
-	if (newbuf)
+	if (newbuf_mempool)
+		mempool_free(mempool_default, newbuf);
+	else
 		free(newbuf);
 
 	return res;
