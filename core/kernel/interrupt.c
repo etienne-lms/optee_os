@@ -20,8 +20,6 @@
  */
 
 static struct itr_chip *itr_main_chip __nex_bss;
-static SLIST_HEAD(, itr_handler) handlers __nex_data =
-	SLIST_HEAD_INITIALIZER(handlers);
 
 void interrupt_main_init(struct itr_chip *chip)
 {
@@ -31,6 +29,7 @@ void interrupt_main_init(struct itr_chip *chip)
 struct itr_chip *interrupt_get_main_chip(void)
 {
 	return itr_main_chip;
+	SLIST_INIT(&itr_main_chip->handlers);
 }
 
 #ifdef CFG_DT
@@ -54,22 +53,7 @@ int dt_get_irq_type_prio(const void *fdt, int node, uint32_t *type,
 
 void itr_handle(size_t it)
 {
-	struct itr_handler *h = NULL;
-	bool was_handled = false;
-
-	SLIST_FOREACH(h, &handlers, link) {
-		if (h->it == it) {
-			if (h->handler(h) == ITRR_HANDLED)
-				was_handled = true;
-			else if (!(h->flags & ITRF_SHARED))
-				break;
-		}
-	}
-
-	if (!was_handled) {
-		EMSG("Disabling unhandled interrupt %zu", it);
-		itr_main_chip->ops->disable(itr_main_chip, it);
-	}
+	interrupt_call_handlers(itr_main_chip, it);
 }
 
 struct itr_handler *itr_alloc_add_type_prio(size_t it, itr_handler_t handler,
@@ -96,7 +80,7 @@ void itr_free(struct itr_handler *hdl)
 
 	itr_main_chip->ops->disable(itr_main_chip, hdl->it);
 
-	SLIST_REMOVE(&handlers, hdl, itr_handler, link);
+	SLIST_REMOVE(&itr_main_chip->handlers, hdl, itr_handler, link);
 	free(hdl);
 }
 
@@ -104,13 +88,13 @@ void itr_add_type_prio(struct itr_handler *h, uint32_t type, uint32_t prio)
 {
 	struct itr_handler __maybe_unused *hdl = NULL;
 
-	SLIST_FOREACH(hdl, &handlers, link)
+	SLIST_FOREACH(hdl, &itr_main_chip->handlers, link)
 		if (hdl->it == h->it)
 			assert((hdl->flags & ITRF_SHARED) &&
 			       (h->flags & ITRF_SHARED));
 
 	itr_main_chip->ops->add(itr_main_chip, h->it, type, prio);
-	SLIST_INSERT_HEAD(&handlers, h, link);
+	SLIST_INSERT_HEAD(&itr_main_chip->handlers, h, link);
 }
 
 void itr_enable(size_t it)
