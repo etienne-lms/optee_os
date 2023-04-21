@@ -47,11 +47,6 @@ register_phys_mem_pgdir(MEM_AREA_IO_SEC, AHB4_BASE, AHB4_SIZE);
 register_phys_mem_pgdir(MEM_AREA_IO_SEC, AHB5_BASE, AHB5_SIZE);
 register_phys_mem_pgdir(MEM_AREA_IO_SEC, GIC_BASE, GIC_SIZE);
 
-#ifdef CFG_STM32MP1_SCMI_SHM_BASE
-register_phys_mem(MEM_AREA_IO_NSEC, CFG_STM32MP1_SCMI_SHM_BASE,
-		  CFG_STM32MP1_SCMI_SHM_SIZE);
-#endif
-
 register_ddr(DDR_BASE, CFG_DRAM_SIZE);
 
 #define _ID2STR(id)		(#id)
@@ -228,10 +223,11 @@ static TEE_Result set_etzpc_secure_configuration(void)
 	config_lock_decprot(STM32MP1_ETZPC_SDMMC2_ID, ETZPC_DECPROT_NS_RW);
 	config_lock_decprot(STM32MP1_ETZPC_SPI4_ID, ETZPC_DECPROT_NS_RW);
 	config_lock_decprot(STM32MP1_ETZPC_SPI5_ID, ETZPC_DECPROT_NS_RW);
-	config_lock_decprot(STM32MP1_ETZPC_SRAM1_ID, ETZPC_DECPROT_NS_RW);
-	config_lock_decprot(STM32MP1_ETZPC_SRAM2_ID, ETZPC_DECPROT_NS_RW);
-	/* SRAM3 is secure */
+	/* SRAM1/2/3/4 are secure */
+	config_lock_decprot(STM32MP1_ETZPC_SRAM1_ID, ETZPC_DECPROT_S_RW);
+	config_lock_decprot(STM32MP1_ETZPC_SRAM2_ID, ETZPC_DECPROT_S_RW);
 	config_lock_decprot(STM32MP1_ETZPC_SRAM3_ID, ETZPC_DECPROT_S_RW);
+	config_lock_decprot(STM32MP1_ETZPC_SRAM4_ID, ETZPC_DECPROT_S_RW);
 	/* STGENC is secure */
 	config_lock_decprot(STM32MP1_ETZPC_STGENC_ID, ETZPC_DECPROT_S_RW);
 	/* TIM12 is secure */
@@ -294,12 +290,6 @@ static TEE_Result init_stm32mp1_drivers(void)
 	/* Secure internal memories for the platform, once ETZPC is ready */
 	etzpc_configure_tzma(0, ETZPC_TZMA_ALL_SECURE);
 	etzpc_lock_tzma(0);
-
-#ifdef CFG_TZSRAM_START
-	COMPILE_TIME_ASSERT(((SYSRAM_BASE + SYSRAM_SIZE) <= CFG_TZSRAM_START) ||
-			    ((SYSRAM_BASE <= CFG_TZSRAM_START) &&
-			     (SYSRAM_SEC_SIZE >= CFG_TZSRAM_SIZE)));
-#endif /* CFG_TZSRAM_START */
 
 	etzpc_configure_tzma(1, SYSRAM_SEC_SIZE >> SMALL_PAGE_SHIFT);
 	etzpc_lock_tzma(1);
