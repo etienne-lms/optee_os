@@ -28,6 +28,11 @@ void interrupt_main_init(struct itr_chip *chip)
 	itr_chip = chip;
 }
 
+struct itr_chip *interrupt_get_main_chip(void)
+{
+	return itr_chip;
+}
+
 #ifdef CFG_DT
 int dt_get_irq_type_prio(const void *fdt, int node, uint32_t *type,
 			 uint32_t *prio)
