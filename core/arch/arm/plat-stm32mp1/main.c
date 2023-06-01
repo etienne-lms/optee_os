@@ -276,6 +276,35 @@ early_init_late(set_all_gpios_non_secure);
 #endif /* CFG_STM32_GPIO */
 #endif /* CFG_STM32MP13 */
 
+#ifdef CFG_STM32MP15
+static TEE_Result init_stm32mp15_secure_srams(void)
+{
+	const paddr_t tzsram_end = CFG_TZSRAM_BASE + CFG_TZSRAM_SIZE;
+	const paddr_t sysram_end = SYSRAM_BASE + SYSRAM_SIZE;
+	bool tzsram_covers_srams = SYSRAM_BASE <= CFG_TZSRAM_BASE &&
+				   tzsram_end > sysram_end;
+	const paddr_t sram1_end = sysram_end + SRAM1_SIZE;
+	const paddr_t sram2_end = sram1_end + SRAM2_SIZE;
+	const paddr_t sram3_end = sram2_end + SRAM3_SIZE;
+	const paddr_t sram4_end = sram3_end + SRAM4_SIZE;
+
+	if (tzsram_covers_srams && tzsram_end > sysram_end)
+		stm32mp_register_secure_periph_iomem(SRAM1_BASE);
+	if (tzsram_covers_srams && tzsram_end > sram1_end)
+		stm32mp_register_secure_periph_iomem(SRAM2_BASE);
+	if (tzsram_covers_srams && tzsram_end > sram2_end)
+		stm32mp_register_secure_periph_iomem(SRAM3_BASE);
+	if (tzsram_covers_srams && tzsram_end > sram3_end)
+		stm32mp_register_secure_periph_iomem(SRAM4_BASE);
+	if (tzsram_covers_srams && tzsram_end > sram4_end)
+		panic();
+
+	return TEE_SUCCESS;
+}
+
+service_init_late(init_stm32mp15_secure_srams);
+#endif
+
 static TEE_Result init_stm32mp1_drivers(void)
 {
 	/* Secure internal memories for the platform, once ETZPC is ready */
