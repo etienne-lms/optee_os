@@ -33,9 +33,9 @@ TEE_Result itr_chip_init(struct itr_chip *chip)
 
 void interrupt_main_init(struct itr_chip *chip)
 {
-	assert(itr_chip_is_valid(chip));
+	if (itr_chip_init(chip))
+		panic();
 
-	SLIST_INIT(&itr_main_chip->handlers);
 	itr_main_chip = chip;
 }
 
