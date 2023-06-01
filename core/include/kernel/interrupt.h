@@ -372,7 +372,7 @@ TEE_Result dt_register_interrupt_provider(const void *fdt, int node,
  *
  * @fdt		Device tree to work on
  * @node	Node offset of the subnode containing interrupt(s) references
- * @index	Index in "interrupts" or "exteneded-interrupts" property list
+ * @index	Index in "interrupts" or "extended-interrupts" property list
  * @chip	Output interrupt controller clock reference upon success
  * @itr_num	Output interrupt number upon success
  *
@@ -430,7 +430,7 @@ static inline TEE_Result dt_get_interrupt_by_name(const void *fdt __unused,
 
 /*
  * Helper function for when caller retrieves the first interrupt defined
- * in "interrupts" or "exteneded-interrupts" DT binding property list.
+ * in "interrupts" or "extended-interrupts" DT binding property list.
  */
 static inline TEE_Result dt_get_interrupt(const void *fdt, int node,
 					  struct itr_chip **chip,

@@ -257,8 +257,8 @@ TEE_Result dt_register_interrupt_provider(const void *fdt, int node,
 
 /*
  * Provide an itr_desc reference based on "interrupts" property bindings.
- * May return TEE_ERROR_DEFER_DRIVER_INIT if parent controller is found by
- * not yet initiallized.
+ * May return TEE_ERROR_DEFER_DRIVER_INIT if parent controller is found but
+ * not yet initialized.
  */
 static TEE_Result get_legacy_interrupt_by_index(const void *fdt, int node,
 						unsigned int index,
@@ -305,9 +305,9 @@ static TEE_Result get_legacy_interrupt_by_index(const void *fdt, int node,
 }
 
 /*
- * Provide an itr_desc based on "interrupts-extended " property bindings.
+ * Provide an itr_desc based on "interrupts-extended" property bindings.
  * May return TEE_ERROR_DEFER_DRIVER_INIT if parent controller is found
- * by not yet initiallized.
+ * but not yet initialized.
  * With this function, provider is expected to have allocated itr_desc
  * with malloc() or like.
  */
