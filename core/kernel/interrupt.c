@@ -25,12 +25,12 @@ void interrupt_main_init(struct itr_chip *chip)
 {
 	assert(itr_chip_is_valid(chip));
 
+	SLIST_INIT(&itr_main_chip->handlers);
 	itr_main_chip = chip;
 }
 
 struct itr_chip *interrupt_get_main_chip(void)
 {
-	SLIST_INIT(&itr_main_chip->handlers);
 	return itr_main_chip;
 }
 
