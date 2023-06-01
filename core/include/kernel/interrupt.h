@@ -114,12 +114,13 @@ struct itr_handler {
 	})
 
 /*
- * Return true only is interrupt chip provides required handlers
+ * Return true only if interrupt chip provides required handlers
  * @chip: Interrupt controller reference
  */
 static inline bool itr_chip_is_valid(struct itr_chip *chip)
 {
-	return chip && chip->ops && chip->ops->mask && chip->ops->unmask;
+	return chip && chip->ops && chip->ops->mask && chip->ops->unmask &&
+	       chip->ops->add;
 }
 
 /*
@@ -249,7 +250,7 @@ static inline void interrupt_enable(struct itr_chip *chip, size_t itr_num)
 }
 
 /*
- * interrupt_disable() - Enable an interrupt
+ * interrupt_disable() - Disable an interrupt
  * @chip	Interrupt controller
  * @itr_num	Interrupt number
  */
