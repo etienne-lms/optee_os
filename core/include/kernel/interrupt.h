@@ -401,21 +401,18 @@ TEE_Result dt_get_interrupt_by_index(const void *fdt, int node,
 TEE_Result dt_get_interrupt_by_name(const void *fdt, int node, const char *name,
 				    struct itr_chip **chip, size_t *itr_num);
 #else
-static inline
-TEE_Result dt_register_interrupt_provider(const void *dt __unused,
-					  int node __unused,
-					  dt_get_itr_func dt_get_itr __unused,
-					  void *data __unused)
+static inline TEE_Result
+dt_register_interrupt_provider(const void *dt __unused, int node __unused,
+			       dt_get_itr_func f __unused, void *data __unused)
 {
 	return TEE_ERROR_NOT_IMPLEMENTED;
 }
 
-static inline
-TEE_Result dt_get_interrupt_by_index(const void *fdt __unused,
-				     int node __unused,
-				     unsigned int index __unused,
-				     struct itr_chip **chip __unused,
-				     size_t *itr_num __unused)
+static inline TEE_Result dt_get_interrupt_by_index(const void *fdt __unused,
+						   int node __unused,
+						   unsigned int index __unused,
+						   struct itr_chip **c __unused,
+						   size_t *itr_num __unused)
 {
 	return TEE_ERROR_NOT_IMPLEMENTED;
 }
