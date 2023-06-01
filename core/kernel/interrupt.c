@@ -23,13 +23,15 @@ static struct itr_chip *itr_main_chip __nex_bss;
 
 void interrupt_main_init(struct itr_chip *chip)
 {
+	assert(itr_chip_is_valid(chip));
+
 	itr_main_chip = chip;
 }
 
 struct itr_chip *interrupt_get_main_chip(void)
 {
-	return itr_main_chip;
 	SLIST_INIT(&itr_main_chip->handlers);
+	return itr_main_chip;
 }
 
 #ifdef CFG_DT
