@@ -124,6 +124,12 @@ static inline bool itr_chip_is_valid(struct itr_chip *chip)
 }
 
 /*
+ * Initialise an interrupt controller handle
+ * @chip	Interrupt controller
+ */
+TEE_Result itr_chip_init(struct itr_chip *chip);
+
+/*
  * Initialise main interrupt controller driver
  * @data Main controller main data reference to register
  */

@@ -21,6 +21,16 @@
 
 static struct itr_chip *itr_main_chip __nex_bss;
 
+TEE_Result itr_chip_init(struct itr_chip *chip)
+{
+	if (!itr_chip_is_valid(chip))
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	SLIST_INIT(&chip->handlers);
+
+	return TEE_SUCCESS;
+}
+
 void interrupt_main_init(struct itr_chip *chip)
 {
 	assert(itr_chip_is_valid(chip));
