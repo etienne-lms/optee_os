@@ -59,7 +59,7 @@
 /*
  * struct stm32_pinctrl_array - Array of pins in a pin control state
  * @count: Number of cells in @pinctrl
- * @pinctrl: Pin controls configuration
+ * @pinctrl: Pin control configuration
  */
 struct stm32_pinctrl_array {
 	size_t count;
@@ -492,7 +492,10 @@ static int get_pinctrl_from_fdt(const void *fdt, int node,
 			ref->pin = (uint8_t)pin;
 #ifdef CFG_DRIVERS_PINCTRL
 			ref->cfg.mode = mode;
-			ref->cfg.otype = opendrain ? 1 : 0;
+			if (opendrain)
+				ref->cfg.otype = GPIO_OTYPE_OPEN_DRAIN;
+			else
+				ref->cfg.otype = GPIO_OTYPE_PUSH_PULL;
 			ref->cfg.ospeed = speed;
 			ref->cfg.pupd = pull;
 			ref->cfg.od = odata;
@@ -967,8 +970,10 @@ static struct pinconf *stm32_pinctrl_dt_get(struct dt_pargs *pargs,
 
 		found = get_pinctrl_from_fdt(fdt, pinmux_node, pinctrl + count,
 					     pin_count - count);
-		if (found <= 0 && found > ((int)pin_count - count))
+		if (found <= 0 && found > ((int)pin_count - count)) {
+			/* We can't recover from an error here so let's panic */
 			panic();
+		}
 
 		count += found;
 	}
