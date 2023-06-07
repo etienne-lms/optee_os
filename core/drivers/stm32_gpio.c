@@ -864,9 +864,9 @@ static const struct pinctrl_ops stm32_pinctrl_ops = {
 
 DECLARE_KEEP_PAGER(stm32_pinctrl_ops);
 
-void stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *pinctrl,
-				 unsigned int *bank, unsigned int *pin,
-				 unsigned int *count)
+TEE_Result stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *pinctrl,
+				       unsigned int *bank, unsigned int *pin,
+				       unsigned int *count)
 {
 	size_t conf_index = 0;
 	size_t pin_count = 0;
@@ -899,6 +899,8 @@ void stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *pinctrl,
 
 out:
 	*count = pin_count;
+
+	return TEE_SUCCESS;
 }
 
 void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl, bool secure)

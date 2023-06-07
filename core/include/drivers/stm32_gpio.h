@@ -160,9 +160,9 @@ void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl, bool secure);
  * @pin: Output pin indices array or NULL
  * @count: [in] Number of cells of @bank and @pin, [out] pin count in @pinctrl
  */
-void stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *pinctrl,
-				 unsigned int *bank, unsigned int *pin,
-				 unsigned int *count);
+TEE_Result stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *pinctrl,
+				       unsigned int *bank, unsigned int *pin,
+				       unsigned int *count);
 #else
 static inline
 void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl __maybe_unused,
@@ -171,13 +171,13 @@ void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl __maybe_unused,
 	assert(!pinctrl);
 }
 
-static inline
-void stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *p __unused,
-				 unsigned int *bank __unused,
-				 unsigned int *pin __unused,
-				 unsigned int *count __maybe_unused)
+static inline TEE_Result
+stm32_gpio_pinctrl_bank_pin(struct pinctrl_state *p __unused,
+			    unsigned int *bank __unused,
+			    unsigned int *pin __unused,
+			    unsigned int *count __maybe_unused)
 {
-	assert(!count);
+	return TEE_ERROR_NOT_SUPPORTED;
 }
 #endif /*CFG_DRIVERS_PINCTRL*/
 #endif /*DRIVERS_STM32_GPIO_H*/
