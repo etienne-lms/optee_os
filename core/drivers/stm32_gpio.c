@@ -903,12 +903,13 @@ out:
 	return TEE_SUCCESS;
 }
 
-void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl, bool secure)
+TEE_Result stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl,
+					bool secure)
 {
 	size_t conf_index = 0;
 
 	if (!pinctrl)
-		return;
+		return TEE_SUCCESS;
 
 	for (conf_index = 0; conf_index < pinctrl->conf_count; conf_index++) {
 		struct pinconf *pinconf = pinctrl->confs[conf_index];
@@ -924,6 +925,8 @@ void stm32_pinctrl_set_secure_cfg(struct pinctrl_state *pinctrl, bool secure)
 			stm32_gpio_set_secure_cfg(pc->bank, pc->pin, secure);
 		}
 	}
+
+	return TEE_SUCCESS;
 }
 
 /* Allocate and return a pinctrl configuration from a DT reference */
