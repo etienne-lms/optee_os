@@ -114,7 +114,8 @@ static void register_secure_uart(struct stm32_uart_pdata *pd)
 
 	stm32mp_register_secure_periph_iomem(pd->base.pa);
 #ifdef CFG_DRIVERS_PINCTRL
-	stm32mp_register_secure_pinctrl(pd->pinctrl);
+	if (stm32mp_register_secure_pinctrl(pd->pinctrl))
+		panic();
 #else
 	for (n = 0; n < pd->pinctrl_count; n++)
 		stm32mp_register_secure_gpio(pd->pinctrl[n].bank,
@@ -128,7 +129,8 @@ static void register_non_secure_uart(struct stm32_uart_pdata *pd)
 
 	stm32mp_register_non_secure_periph_iomem(pd->base.pa);
 #ifdef CFG_DRIVERS_PINCTRL
-	stm32mp_register_non_secure_pinctrl(pd->pinctrl);
+	if (stm32mp_register_non_secure_pinctrl(pd->pinctrl))
+		panic();
 #else
 	for (n = 0; n < pd->pinctrl_count; n++)
 		stm32mp_register_non_secure_gpio(pd->pinctrl[n].bank,
