@@ -242,7 +242,8 @@ static struct stm32_gpio_bank *stm32_gpio_get_bank(unsigned int bank_id)
 }
 
 /* Save to output @cfg the current GPIO (@bank_id/@pin) configuration */
-static void get_gpio_cfg(uint32_t bank_id, uint32_t pin, struct gpio_cfg *cfg)
+static void __maybe_unused get_gpio_cfg(uint32_t bank_id, uint32_t pin,
+					struct gpio_cfg *cfg)
 {
 	struct stm32_gpio_bank *bank = stm32_gpio_get_bank(bank_id);
 
