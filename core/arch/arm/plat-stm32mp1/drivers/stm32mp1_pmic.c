@@ -606,8 +606,9 @@ static void register_non_secure_pmic(void)
 		return;
 
 #ifdef CFG_DRIVERS_PINCTRL
-	stm32mp_register_non_secure_pinctrl(i2c_handle.pinctrl);
-	stm32mp_register_non_secure_pinctrl(i2c_handle.pinctrl_sleep);
+	if (stm32mp_register_non_secure_pinctrl(i2c_handle.pinctrl) ||
+	    stm32mp_register_non_secure_pinctrl(i2c_handle.pinctrl_sleep))
+		panic();
 #else
 	for (n = 0; n < i2c_handle.pinctrl_count; n++)
 		stm32mp_register_non_secure_gpio(i2c_handle.pinctrl[n].bank,
@@ -622,8 +623,9 @@ static void register_secure_pmic(void)
 	size_t __maybe_unused n = 0;
 
 #ifdef CFG_DRIVERS_PINCTRL
-	stm32mp_register_secure_pinctrl(i2c_handle.pinctrl);
-	stm32mp_register_secure_pinctrl(i2c_handle.pinctrl_sleep);
+	if (stm32mp_register_secure_pinctrl(i2c_handle.pinctrl) ||
+	    stm32mp_register_secure_pinctrl(i2c_handle.pinctrl_sleep))
+		panic();
 #else
 	for (n = 0; n < i2c_handle.pinctrl_count; n++)
 		stm32mp_register_secure_gpio(i2c_handle.pinctrl[n].bank,
