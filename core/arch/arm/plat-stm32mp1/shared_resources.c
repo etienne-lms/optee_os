@@ -371,54 +371,66 @@ void stm32mp_register_non_secure_gpio(unsigned int bank, unsigned int pin)
 	}
 }
 
-void stm32mp_register_secure_pinctrl(struct pinctrl_state *pinctrl)
+TEE_Result stm32mp_register_secure_pinctrl(struct pinctrl_state *pinctrl)
 {
+	TEE_Result res = TEE_ERROR_GENERIC;
 	unsigned int *bank = NULL;
 	unsigned int *pin = NULL;
 	size_t count = 0;
 	size_t n = 0;
 
-	stm32_gpio_pinctrl_bank_pin(pinctrl, NULL, NULL, &count);
-	if (!count)
-		return;
+	res = stm32_gpio_pinctrl_bank_pin(pinctrl, NULL, NULL, &count);
+	if (res || !count)
+		goto out;
 
 	bank = calloc(count, sizeof(*bank));
 	pin = calloc(count, sizeof(*pin));
 	if (!bank || !pin)
 		panic();
 
-	stm32_gpio_pinctrl_bank_pin(pinctrl, bank, pin, &count);
+	res = stm32_gpio_pinctrl_bank_pin(pinctrl, bank, pin, &count);
+	if (res)
+		goto out;
 
 	for (n = 0; n < count; n++)
 		stm32mp_register_secure_gpio(bank[n], pin[n]);
 
+out:
 	free(bank);
 	free(pin);
+
+	return TEE_SUCCESS;
 }
 
-void stm32mp_register_non_secure_pinctrl(struct pinctrl_state *pinctrl)
+TEE_Result stm32mp_register_non_secure_pinctrl(struct pinctrl_state *pinctrl)
 {
+	TEE_Result res = TEE_ERROR_GENERIC;
 	unsigned int *bank = NULL;
 	unsigned int *pin = NULL;
 	size_t count = 0;
 	size_t n = 0;
 
-	stm32_gpio_pinctrl_bank_pin(pinctrl, NULL, NULL, &count);
-	if (!count)
-		return;
+	res = stm32_gpio_pinctrl_bank_pin(pinctrl, NULL, NULL, &count);
+	if (res || !count)
+		goto out;
 
 	bank = calloc(count, sizeof(*bank));
 	pin = calloc(count, sizeof(*pin));
 	if (!bank || !pin)
 		panic();
 
-	stm32_gpio_pinctrl_bank_pin(pinctrl, bank, pin, &count);
+	res = stm32_gpio_pinctrl_bank_pin(pinctrl, bank, pin, &count);
+	if (res)
+		goto out;
 
 	for (n = 0; n < count; n++)
 		stm32mp_register_non_secure_gpio(bank[n], pin[n]);
 
+out:
 	free(bank);
 	free(pin);
+
+	return TEE_SUCCESS;
 }
 
 static void lock_registering(void)
