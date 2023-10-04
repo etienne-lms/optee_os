@@ -74,6 +74,7 @@ struct i2c_dev {
  * @read: I2C read operation
  * @write: I2C write operation
  * @smbus: SMBus protocol operation
+ * @put: Release resources allocated from i2c_create_dev()
  */
 struct i2c_ctrl_ops {
 	TEE_Result (*read)(struct i2c_dev *i2c_dev, uint8_t *buf, size_t len);
@@ -82,6 +83,7 @@ struct i2c_ctrl_ops {
 	TEE_Result (*smbus)(struct i2c_dev *i2c_dev, enum i2c_smbus_dir dir,
 			    enum i2c_smbus_protocol proto, uint8_t cmd_code,
 			    uint8_t *buf, size_t len);
+	void (*put)(struct i2c_dev *i2c_dev);
 };
 
 /**
@@ -105,6 +107,13 @@ struct i2c_ctrl {
  */
 struct i2c_dev *i2c_create_dev(struct i2c_ctrl *i2c_ctrl, const void *fdt,
 			       int node);
+
+/**
+ * i2c_release_dev() - Release resource allocated by i2c_create_dev()
+ *
+ * @i2c_dev: Reference obtained from a call to i2c_create_dev()
+ */
+void i2c_release_dev(struct i2c_dev *i2c_dev);
 
 /**
  * i2c_write() - Execute an I2C write on the I2C bus
@@ -195,6 +204,15 @@ static inline TEE_Result i2c_dt_get_dev(const void *fdt, int nodeoffset,
 
 	return res;
 }
+
+/*
+ * Release I2C device resource allocated from i2c_dt_get_dev()
+ */
+static inline void i2c_dt_put_dev(costruct i2c_dev *i2c_dev)
+{
+	if (i2c_dev->ctrl->ops->put)
+		i2c_dev->ctrl->ops->put(i2c_dev);
+}
 #else
 static inline TEE_Result i2c_write(struct i2c_dev *i2c_dev __unused,
 				   const uint8_t *buf __unused,
@@ -224,6 +242,10 @@ static inline TEE_Result i2c_dt_get_dev(const void *fdt __unused,
 					struct i2c_dev **i2c_dev)
 {
 	return TEE_ERROR_NOT_SUPPORTED;
+}
+
+static inline void i2c_dt_put_dev(struct i2c_dev *i2c_dev __unused)
+{
 }
 #endif
 

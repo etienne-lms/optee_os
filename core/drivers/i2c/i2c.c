@@ -30,3 +30,8 @@ struct i2c_dev *i2c_create_dev(struct i2c_ctrl *i2c_ctrl, const void *fdt,
 
 	return i2c_dev;
 }
+
+void i2c_release_dev(struct i2c_dev *i2c_dev)
+{
+	free(i2c_dev);
+}
