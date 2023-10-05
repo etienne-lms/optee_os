@@ -272,10 +272,17 @@ static TEE_Result atmel_i2c_init_hw(struct atmel_i2c *i2c)
 	return atmel_i2c_init_clk(i2c);
 }
 
+static TEE_Result atmel_i2c_put(struct i2c_dev *i2c_dev)
+{
+	/* Balance allocation done in atmel_i2c_get_dt_i2c() */
+	i2c_release_dev(i2c_dev);
+}
+
 static const struct i2c_ctrl_ops atmel_i2c_ops = {
 	.read = atmel_i2c_read_data,
 	.write = atmel_i2c_write_data,
 	.smbus = atmel_i2c_smbus,
+	.put = atmel_i2c_put,
 };
 
 static TEE_Result atmel_i2c_get_dt_i2c(struct dt_pargs *args, void *data,
