@@ -97,7 +97,7 @@ struct i2c_ctrl {
 
 #ifdef CFG_DRIVERS_I2C
 /**
- * i2c_create_dev - Create and i2c_dev struct from device-tree
+ * i2c_create_dev() - Create and i2c_dev struct from device-tree
  *
  * @i2c_ctrl: Controller to be used with this device
  * @fdt: Device-tree to work on
@@ -180,7 +180,7 @@ static inline TEE_Result i2c_smbus_raw(struct i2c_dev *i2c_dev,
 }
 
 /**
- * i2c_dt_get_dev - Get an I2C device from a DT node
+ * i2c_dt_get_dev() - Get an I2C device from a DT node
  *
  * @fdt: Device tree to work on
  * @nodeoffset: Node offset of the I2C bus consumer
@@ -208,7 +208,7 @@ static inline TEE_Result i2c_dt_get_dev(const void *fdt, int nodeoffset,
 /*
  * Release I2C device resource allocated from i2c_dt_get_dev()
  */
-static inline void i2c_dt_put_dev(costruct i2c_dev *i2c_dev)
+static inline void i2c_dt_put_dev(struct i2c_dev *i2c_dev)
 {
 	if (i2c_dev->ctrl->ops->put)
 		i2c_dev->ctrl->ops->put(i2c_dev);
@@ -239,7 +239,7 @@ static inline TEE_Result i2c_smbus_raw(struct i2c_dev *i2c_dev __unused,
 
 static inline TEE_Result i2c_dt_get_dev(const void *fdt __unused,
 					int nodeoffset __unused,
-					struct i2c_dev **i2c_dev)
+					struct i2c_dev **i2c_dev __unused)
 {
 	return TEE_ERROR_NOT_SUPPORTED;
 }
@@ -261,8 +261,8 @@ typedef TEE_Result (*i2c_dt_get_func)(struct dt_pargs *args, void *data,
 				      struct i2c_dev **out_device);
 
 /**
- * i2c_dt_register_provider - Register a I2C controller provider and add all the
- *	child nodes of this controller in the DT probe list.
+ * i2c_dt_register_provider() - Register a I2C controller provider and add all
+ *	the child nodes of this controller in the DT probe list.
  *
  * @fdt: Device tree to work on
  * @nodeoffset: Node offset of the I2C controller
