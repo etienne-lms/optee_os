@@ -1461,9 +1461,18 @@ static TEE_Result stm32_i2c_write_data(struct i2c_dev *i2c_dev,
 		return TEE_ERROR_GENERIC;
 }
 
+static void stm32_i2c_put(struct i2c_dev *i2c_dev)
+{
+	struct i2c_handle_s *i2c_handle = stm32_i2c_dev_to_handle(i2c_dev);
+
+	/* Balance the allocation made in stm32_get_i2c_handle() */
+	free(i2c_handle);
+}
+
 static const struct i2c_ctrl_ops stm32_i2c_ops = {
 	.read = stm32_i2c_read_data,
 	.write = stm32_i2c_write_data,
+	.put = stm32_i2c_put,
 };
 
 bool stm32_i2c_is_device_ready(struct i2c_handle_s *hi2c, uint32_t dev_addr,
