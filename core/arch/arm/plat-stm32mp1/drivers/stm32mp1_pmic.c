@@ -281,11 +281,6 @@ static int save_cpu_supply_name(void)
 	return 0;
 }
 
-const char *stm32mp_pmic_get_cpu_supply_name(void)
-{
-	return cpu_supply_name;
-}
-
 /* Preallocate not that much regu references */
 static char *nsec_access_regu_name[PMIC_REGU_COUNT];
 
