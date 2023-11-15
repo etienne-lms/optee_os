@@ -28,10 +28,6 @@ enum pwr_regulator {
 
 vaddr_t stm32_pwr_base(void);
 
-unsigned int stm32mp1_pwr_regulator_mv(enum pwr_regulator id);
-void stm32mp1_pwr_regulator_set_state(enum pwr_regulator id, bool enable);
-bool stm32mp1_pwr_regulator_is_enabled(enum pwr_regulator id);
-
 /* Returns the registered regulator related to @id or NULL */
 struct regulator *stm32mp1_pwr_get_regulator(enum pwr_regulator id);
 #endif /*__STM32MP1_PWR_H*/
