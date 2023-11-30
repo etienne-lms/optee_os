@@ -48,8 +48,9 @@ struct vrefbuf_compat {
  * @clock: VREFBUF access bus clock
  * @regulator: Preallocated instance for the regulator
  * @compat: Compatibility data
- * @voltages_header: Supported voltage level description
- * @voltages_level: Supplorted levels, must follow @voltages_header
+ * @voltages_desc: Supported voltage level description
+ * @voltages_level: Supplorted levels description
+ * @voltages_start_index: start index in compat for supported levels
  */
 struct vrefbuf_regul {
 	vaddr_t base;
@@ -57,9 +58,8 @@ struct vrefbuf_regul {
 	uint64_t disable_timeout;
 	struct regulator regulator;
 	const struct vrefbuf_compat *compat;
-	/* @supported_levels must follow @voltages_header */
-	struct regulator_voltages_hdr voltages_header;
-	int supported_levels[VREFBUF_LEVELS_COUNT];
+	struct regulator_voltages_desc voltages_desc;
+	size_t voltages_start_index;
 };
 
 static const struct vrefbuf_compat stm32mp15_vrefbuf_compat = {
@@ -208,16 +208,14 @@ static TEE_Result vrefbuf_set_voltage(struct regulator *regulator, int level_uv)
 }
 
 static TEE_Result vrefbuf_list_voltages(struct regulator *regulator __unused,
-					struct regulator_voltages **voltages)
+					struct regulator_voltages_desc **desc,
+					int **levels)
 {
 	struct vrefbuf_regul *vr = regulator_to_vr(regulator);
+	/* Drop the const attribute from voltage levels array cells */
+	int *levels_ref = (int *)vr->compat->voltages;
 
-	/* ::supported_levels must follow ::voltages_header */
-	static_assert(offsetof(typeof(*vr), voltages_header) +
-		      sizeof(vr->voltages_header) ==
-		      offsetof(typeof(*vr), supported_levels));
-
-	if (!vr->voltages_header.type) {
+	if (!vr->voltages_desc.type) {
 		size_t num_levels = ARRAY_SIZE(vr->compat->voltages);
 		unsigned int index_high = num_levels - 1;
 		unsigned int index_low = 0;
@@ -240,14 +238,13 @@ static TEE_Result vrefbuf_list_voltages(struct regulator *regulator __unused,
 
 		count = index_high - index_low + 1;
 
-		vr->voltages_header.type = VOLTAGE_TYPE_FULL_LIST;
-		vr->voltages_header.num_levels = count;
-		for (n = 0; n < count; n++)
-			vr->supported_levels[n] =
-				vr->compat->voltages[index_low + n];
+		vr->voltages_desc.type = VOLTAGE_TYPE_FULL_LIST;
+		vr->voltages_desc.num_levels = count;
+		vr->voltages_start_index = index_low;
 	}
 
-	*voltages = (void *)(vaddr_t)&vr->voltages_header;
+	*desc = &vr->voltages_desc;
+	*levels = levels_ref + vr->voltages_start_index;
 
 	return TEE_SUCCESS;
 }
