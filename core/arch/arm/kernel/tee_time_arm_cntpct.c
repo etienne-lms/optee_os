@@ -5,6 +5,7 @@
 
 #include <arm.h>
 #include <crypto/crypto.h>
+#include <keep.h>
 #include <kernel/misc.h>
 #include <kernel/tee_time.h>
 #include <kernel/time_source.h>
@@ -32,6 +33,7 @@ static const struct time_source arm_cntpct_time_source = {
 };
 
 REGISTER_TIME_SOURCE(arm_cntpct_time_source)
+DECLARE_KEEP_PAGER(arm_cntpct_time_source);
 
 /*
  * We collect jitter using cntpct in 32- or 64-bit mode that is typically
