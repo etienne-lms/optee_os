@@ -29,6 +29,7 @@
 #define IWDG_TIMEOUT_US		U(10000)
 #define IWDG_CNT_MASK		GENMASK_32(11, 0)
 #define IWDG_ONF_MIN_VER	U(0x31)
+#define IWDG_ICR_MIN_VER	U(0x40)
 
 /* IWDG registers offsets */
 #define IWDG_KR_OFFSET		U(0x00)
@@ -36,6 +37,7 @@
 #define IWDG_RLR_OFFSET		U(0x08)
 #define IWDG_SR_OFFSET		U(0x0C)
 #define IWDG_EWCR_OFFSET	U(0x14)
+#define IWDG_ICR_OFFSET		U(0x18)
 #define IWDG_VERR_OFFSET	U(0x3F4)
 
 #define IWDG_KR_WPROT_KEY	U(0x0000)
@@ -55,11 +57,18 @@
 #define IWDG_SR_UPDATE_MASK	(IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU | \
 				 IWDG_SR_EWU)
 #define IWDG_SR_ONF		BIT(8)
+#define IWDG_SR_EWIF		BIT(14)
+#define IWDG_SR_EWIF_V40	BIT(15)
 
 #define IWDG_EWCR_EWIE		BIT(15)
 #define IWDG_EWCR_EWIC		BIT(14)
 
+#define IWDG_ICR_EWIC		BIT(15)
+
 #define IWDG_VERR_REV_MASK	GENMASK_32(7, 0)
+
+/* Define default early timeout delay to 5 sec before timeout */
+#define IWDG_ETIMEOUT_SEC	U(5)
 
 /*
  * Values for struct stm32_iwdg_device::flags
@@ -74,6 +83,9 @@
  * @base - IWDG interface IOMEM base address
  * @clk_pclk - Bus clock
  * @clk_lsi - IWDG source clock
+ * @itr_chip - Interrupt chip device
+ * @itr_num - Interrupt number for the IWDG instance
+ * @itr_handler - Interrupt handler
  * @flags - Property flags for the IWDG instance
  * @timeout - Watchdog elaspure timeout
  * @hw_version - Watchdog HW version
@@ -84,6 +96,9 @@ struct stm32_iwdg_device {
 	struct io_pa_va base;
 	struct clk *clk_pclk;
 	struct clk *clk_lsi;
+	struct itr_chip *itr_chip;
+	size_t itr_num;
+	struct itr_handler *itr_handler;
 	uint32_t flags;
 	unsigned long timeout;
 	unsigned int hw_version;
@@ -93,6 +108,14 @@ struct stm32_iwdg_device {
 
 static SLIST_HEAD(iwdg_dev_list_head, stm32_iwdg_device) iwdg_dev_list =
 	SLIST_HEAD_INITIALIZER(iwdg_dev_list_head);
+
+static uint32_t sr_ewif_mask(struct stm32_iwdg_device *iwdg)
+{
+	if (iwdg->hw_version >= IWDG_ICR_MIN_VER)
+		return IWDG_SR_EWIF_V40;
+	else
+		return IWDG_SR_EWIF;
+}
 
 static vaddr_t get_base(struct stm32_iwdg_device *iwdg)
 {
@@ -144,11 +167,44 @@ static TEE_Result iwdg_wait_sync(struct stm32_iwdg_device *iwdg)
 	return TEE_SUCCESS;
 }
 
+static enum itr_return stm32_iwdg_it_handler(struct itr_handler *h)
+{
+	unsigned int __maybe_unused cpu = get_core_pos();
+	struct stm32_iwdg_device *iwdg = h->data;
+	vaddr_t iwdg_base = get_base(iwdg);
+
+	DMSG("CPU %u IT Watchdog %#"PRIxPA, cpu, iwdg->base.pa);
+
+	/* Check for spurious interrupt */
+	if (!(io_read32(iwdg_base + IWDG_SR_OFFSET) & sr_ewif_mask(iwdg)))
+		return ITRR_NONE;
+
+	/*
+	 * Writing IWDG_EWCR_EWIT triggers a watchdog refresh.
+	 * To prevent the watchdog refresh, write-protect all the registers;
+	 * this makes read-only all IWDG_EWCR fields except IWDG_EWCR_EWIC.
+	 */
+	io_write32(iwdg_base + IWDG_KR_OFFSET, IWDG_KR_WPROT_KEY);
+
+	/* Disable early interrupt */
+	if (iwdg->hw_version >= IWDG_ICR_MIN_VER)
+		io_setbits32(iwdg_base + IWDG_ICR_OFFSET, IWDG_ICR_EWIC);
+	else
+		io_setbits32(iwdg_base + IWDG_EWCR_OFFSET, IWDG_EWCR_EWIC);
+
+	panic("Watchdog");
+
+	return ITRR_HANDLED;
+}
+DECLARE_KEEP_PAGER(stm32_iwdg_it_handler);
+
 static TEE_Result configure_timeout(struct stm32_iwdg_device *iwdg)
 {
 	TEE_Result res = TEE_ERROR_GENERIC;
 	vaddr_t iwdg_base = get_base(iwdg);
 	uint32_t rlr_value = 0;
+	uint32_t ewie_value = 0;
+	int early_timeout = iwdg->timeout - IWDG_ETIMEOUT_SEC;
 
 	assert(iwdg_wdt_is_enabled(iwdg));
 
@@ -156,12 +212,22 @@ static TEE_Result configure_timeout(struct stm32_iwdg_device *iwdg)
 	if (!rlr_value)
 		return TEE_ERROR_GENERIC;
 
+	if (iwdg->itr_handler && early_timeout >= 1) {
+		ewie_value = iwdg_timeout_cnt(iwdg, IWDG_ETIMEOUT_SEC);
+		interrupt_enable(iwdg->itr_chip, iwdg->itr_num);
+	}
+
 	io_write32(iwdg_base + IWDG_KR_OFFSET, IWDG_KR_ACCESS_KEY);
 	io_write32(iwdg_base + IWDG_PR_OFFSET, IWDG_PR_DIV_256);
 	io_write32(iwdg_base + IWDG_RLR_OFFSET, rlr_value);
-	io_write32(iwdg_base + IWDG_KR_OFFSET, IWDG_KR_RELOAD_KEY);
+	if (ewie_value &&
+	    !(io_read32(iwdg_base + IWDG_EWCR_OFFSET) & IWDG_EWCR_EWIE))
+		io_write32(iwdg_base + IWDG_EWCR_OFFSET,
+			   ewie_value | IWDG_EWCR_EWIE);
 
 	res = iwdg_wait_sync(iwdg);
+
+	io_write32(iwdg_base + IWDG_KR_OFFSET, IWDG_KR_RELOAD_KEY);
 
 	return res;
 }
@@ -268,6 +334,17 @@ static TEE_Result stm32_iwdg_parse_fdt(struct stm32_iwdg_device *iwdg,
 	res = clk_dt_get_by_name(fdt, node, "lsi", &iwdg->clk_lsi);
 	if (res)
 		return res;
+
+	res = interrupt_dt_get(fdt, node, &iwdg->itr_chip, &iwdg->itr_num);
+	if (res && res != TEE_ERROR_ITEM_NOT_FOUND)
+		return res;
+	if (!res) {
+		res = interrupt_create_handler(iwdg->itr_chip, iwdg->itr_num,
+					       stm32_iwdg_it_handler, iwdg, 0,
+					       &iwdg->itr_handler);
+		if (res)
+			return res;
+	}
 
 	if (dt_info.status == DT_STATUS_OK_NSEC)
 		iwdg->flags |= IWDG_FLAGS_NON_SECURE;
