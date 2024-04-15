@@ -6,6 +6,7 @@
 #ifndef __DRIVERS_STPMIC1_REGULATOR_H
 #define __DRIVERS_STPMIC1_REGULATOR_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /*
