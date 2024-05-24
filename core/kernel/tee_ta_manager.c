@@ -517,8 +517,8 @@ TEE_Result tee_ta_close_session(struct tee_ta_session *csess,
 	return TEE_SUCCESS;
 }
 
-static TEE_Result tee_ta_init_session_with_context(struct tee_ta_session *s,
-						   const TEE_UUID *uuid)
+TEE_Result tee_ta_init_session_with_context(struct tee_ta_session *s,
+					    const TEE_UUID *uuid)
 {
 	struct tee_ta_ctx *ctx = NULL;
 

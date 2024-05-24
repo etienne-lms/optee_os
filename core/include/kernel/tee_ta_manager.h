@@ -101,6 +101,20 @@ extern struct tee_ta_ctx_head tee_ctxes;
 extern struct mutex tee_ta_mutex;
 extern struct condvar tee_ta_init_cv;
 
+/*
+ * Init session with already loaded context if matching
+ *
+ * @s: Session for which to setup a trusted service context
+ * @uuid: Requested trusted service UUID
+ *
+ * Return TEE_SUCCESS if one matches, in which case @s is loaded with the
+ * context refererences.
+ * Return TEE_ERROR_ITEM_NOT_FOUND if no matching context is already registered.
+ * Return another TEE error code otherwise.
+ */
+TEE_Result tee_ta_init_session_with_context(struct tee_ta_session *s,
+					    const TEE_UUID *uuid);
+
 TEE_Result tee_ta_open_session(TEE_ErrorOrigin *err,
 			       struct tee_ta_session **sess,
 			       struct tee_ta_session_head *open_sessions,
