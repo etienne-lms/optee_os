@@ -290,6 +290,7 @@ service_init(verify_pseudo_tas_conformance);
 TEE_Result tee_ta_init_pseudo_ta_session(const TEE_UUID *uuid,
 			struct tee_ta_session *s)
 {
+	TEE_Result res = TEE_ERROR_GENERIC;
 	struct pseudo_ta_ctx *stc = NULL;
 	struct tee_ta_ctx *ctx;
 	const struct pseudo_ta_head *ta;
@@ -306,11 +307,26 @@ TEE_Result tee_ta_init_pseudo_ta_session(const TEE_UUID *uuid,
 		ta++;
 	}
 
-	/* Load a new TA and create a session */
+	/* Setup PTA context and create a session */
 	DMSG("Open %s", ta->name);
+
+	mutex_lock(&tee_ta_mutex);
+
+	/*
+	 * Before updating the context list check again if a context
+	 * already exists in the list for a single instance TA.
+	 */
+	res = tee_ta_init_session_with_context(s, uuid);
+	if (res != TEE_ERROR_ITEM_NOT_FOUND) {
+		mutex_unlock(&tee_ta_mutex);
+		return res;
+	}
+
 	stc = calloc(1, sizeof(struct pseudo_ta_ctx));
-	if (!stc)
+	if (!stc) {
+		mutex_unlock(&tee_ta_mutex);
 		return TEE_ERROR_OUT_OF_MEMORY;
+	}
 	ctx = &stc->ctx;
 
 	ctx->ref_count = 1;
@@ -319,9 +335,9 @@ TEE_Result tee_ta_init_pseudo_ta_session(const TEE_UUID *uuid,
 	ctx->ts_ctx.uuid = ta->uuid;
 	ctx->ts_ctx.ops = &pseudo_ta_ops;
 
-	mutex_lock(&tee_ta_mutex);
 	s->ts_sess.ctx = &ctx->ts_ctx;
 	TAILQ_INSERT_TAIL(&tee_ctxes, ctx, link);
+
 	mutex_unlock(&tee_ta_mutex);
 
 	DMSG("%s : %pUl", stc->pseudo_ta->name, (void *)&ctx->ts_ctx.uuid);

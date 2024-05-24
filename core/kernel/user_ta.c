@@ -458,9 +458,23 @@ TEE_Result tee_ta_init_user_ta_session(const TEE_UUID *uuid,
 	TEE_Result res = TEE_SUCCESS;
 	struct user_ta_ctx *utc = NULL;
 
+	mutex_lock(&tee_ta_mutex);
+
+	/*
+	 * Before updating the context list check again if a context
+	 * already exists in the list for a single instance TA.
+	 */
+	res = tee_ta_init_session_with_context(s, uuid);
+	if (res != TEE_ERROR_ITEM_NOT_FOUND) {
+		mutex_unlock(&tee_ta_mutex);
+		return res;
+	}
+
 	utc = calloc(1, sizeof(struct user_ta_ctx));
-	if (!utc)
+	if (!utc) {
+		mutex_unlock(&tee_ta_mutex);
 		return TEE_ERROR_OUT_OF_MEMORY;
+	}
 
 	TAILQ_INIT(&utc->open_sessions);
 	TAILQ_INIT(&utc->cryp_states);
@@ -485,9 +499,9 @@ TEE_Result tee_ta_init_user_ta_session(const TEE_UUID *uuid,
 	crypto_rng_read(&utc->uctx.keys, sizeof(utc->uctx.keys));
 #endif
 
-	mutex_lock(&tee_ta_mutex);
 	s->ts_sess.ctx = &utc->ta_ctx.ts_ctx;
 	s->ts_sess.handle_scall = s->ts_sess.ctx->ops->handle_scall;
+
 	/*
 	 * Another thread trying to load this same TA may need to wait
 	 * until this context is fully initialized. This is needed to

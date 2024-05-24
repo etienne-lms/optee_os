@@ -339,15 +339,30 @@ TEE_Result stmm_init_session(const TEE_UUID *uuid, struct tee_ta_session *sess)
 	if (memcmp(uuid, &stmm_uuid, sizeof(*uuid)))
 		return TEE_ERROR_ITEM_NOT_FOUND;
 
+	mutex_lock(&tee_ta_mutex);
+
+	/*
+	 * Before updating the context list check again if
+	 * StMM context already exists.
+	 */
+	res = tee_ta_init_session_with_context(sess, uuid);
+	if (res != TEE_ERROR_ITEM_NOT_FOUND) {
+		mutex_unlock(&tee_ta_mutex);
+		return res;
+	}
+
 	spc = stmm_alloc_ctx(uuid);
-	if (!spc)
+	if (!spc) {
+		mutex_unlock(&tee_ta_mutex);
 		return TEE_ERROR_OUT_OF_MEMORY;
+	}
 
 	spc->ta_ctx.is_initializing = true;
 
-	mutex_lock(&tee_ta_mutex);
 	sess->ts_sess.ctx = &spc->ta_ctx.ts_ctx;
 	sess->ts_sess.handle_scall = sess->ts_sess.ctx->ops->handle_scall;
+	TAILQ_INSERT_TAIL(&tee_ctxes, &spc->ta_ctx, link);
+
 	mutex_unlock(&tee_ta_mutex);
 
 	ts_push_current_session(&sess->ts_sess);
@@ -363,7 +378,6 @@ TEE_Result stmm_init_session(const TEE_UUID *uuid, struct tee_ta_session *sess)
 
 	mutex_lock(&tee_ta_mutex);
 	spc->ta_ctx.is_initializing = false;
-	TAILQ_INSERT_TAIL(&tee_ctxes, &spc->ta_ctx, link);
 	mutex_unlock(&tee_ta_mutex);
 
 	return TEE_SUCCESS;
