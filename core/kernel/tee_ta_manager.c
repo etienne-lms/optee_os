@@ -614,12 +614,7 @@ static TEE_Result tee_ta_init_session(TEE_ErrorOrigin *err,
 	}
 
 	TAILQ_INSERT_TAIL(open_sessions, s, link);
-
-	/* Look for already loaded TA */
-	res = tee_ta_init_session_with_context(s, uuid);
 	mutex_unlock(&tee_ta_mutex);
-	if (res == TEE_SUCCESS || res != TEE_ERROR_ITEM_NOT_FOUND)
-		goto out;
 
 	/* Look for secure partition */
 	res = stmm_init_session(uuid, s);
