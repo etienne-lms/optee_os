@@ -342,6 +342,11 @@ endif
 CFG_ENABLE_EMBEDDED_TESTS ?= y
 CFG_WITH_STATS ?= y
 
+# Default enable unsafe module exponentiation in core crypto
+# to overcome the performance penalty induced on 32bit Arm
+# of the constant time safe implementation in libmbedtls.
+CFG_CORE_UNSAFE_MODEXP ?= y
+
 # Default enable software fallback on crypto drivers
 CFG_STM32_SAES_SW_FALLBACK ?= y
 
