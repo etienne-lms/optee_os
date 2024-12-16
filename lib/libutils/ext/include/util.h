@@ -55,6 +55,19 @@
 			  ~((__typeof__(v))(size) - 1))
 
 /*
+ * ROUNDUP_VAR(v, size)
+ * Round up value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * ROUNDUP_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+#define ROUNDUP_VAR(v, size) \
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		ROUNDUP((v), (size)); \
+	}))
+
+/*
  * Round up the even multiple of size and return if result overflow
  * output value range. Size has to be a power of 2.
  */
@@ -65,6 +78,23 @@
 	ADD_OVERFLOW((v), __roundup_mask, &__roundup_tmp) ? 1 : \
 		((void)(*(res) = __roundup_tmp & ~__roundup_mask), 0); \
 }))
+
+/*
+ * ROUNDUP_OVERFLOW_VAR(v, size)
+ *
+ * Round up value @v to the even multiple of @size and return if result
+ * overflows the output value range pointed by @res. The rounded value is
+ * stored in the memory address pointed by @res.
+ * @size must be a power of 2.
+ *
+ * ROUNDUP_OVERFLOW_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+#define ROUNDUP_OVERFLOW_VAR(v, size, res) \
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		ROUNDUP_OVERFLOW((v), (size), (res)); \
+	}))
 
 /*
  * Rounds up to the nearest multiple of y and then divides by y. Safe
@@ -84,6 +114,19 @@
 
 /* Round down the even multiple of size, size has to be a power of 2 */
 #define ROUNDDOWN(v, size) ((v) & ~((__typeof__(v))(size) - 1))
+
+/*
+ * ROUNDDOWN_VAR(v, size)
+ * Round down value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * ROUNDDOWN_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+#define ROUNDDOWN_VAR(v, size)	\
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		ROUNDDOWN((v), (size)); \
+	}))
 
 /*
  * Round up the result of x / y to the nearest upper integer if result is not 
