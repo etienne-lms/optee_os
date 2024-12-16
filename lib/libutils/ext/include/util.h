@@ -9,6 +9,7 @@
 #include <inttypes.h>
 
 #ifndef __ASSEMBLER__
+#include <assert.h>
 #include <stddef.h>
 #endif
 
@@ -77,6 +78,7 @@
 	typeof(x) __roundup_x = (x); \
 	typeof(y) __roundup_mask = (typeof(x))(y) - 1; \
 	\
+	assert(IS_POWER_OF_TWO(y)); \
 	(__roundup_x / (y)) + (__roundup_x & __roundup_mask ? 1 : 0); \
 }))
 
