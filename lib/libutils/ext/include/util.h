@@ -87,18 +87,8 @@
 #define ROUNDUP2(v, size)	((((v) + (size) - 1) / (size)) * (size))
 
 /*
- * Round up the even multiple of size and return if result overflow
- * output value range. Size has to be a power of 2.
- */
-#define ROUNDUP_OVERFLOW(v, size, res) (__extension__({ \
-	typeof(*(res)) __roundup_tmp = 0; \
-	typeof(v) __roundup_mask = (typeof(v))(size) - 1; \
-	\
-	ADD_OVERFLOW((v), __roundup_mask, &__roundup_tmp) ? 1 : \
-		((void)(*(res) = __roundup_tmp & ~__roundup_mask), 0); \
-}))
-
-/*
+ * __ROUNDUP_OVERFLOW(v, size)
+ * ROUNDUP_OVERFLOW(v, size)
  * ROUNDUP_OVERFLOW_VAR(v, size)
  *
  * Round up value @v to the even multiple of @size and return if result
@@ -106,13 +96,32 @@
  * stored in the memory address pointed by @res.
  * @size must be a power of 2.
  *
+ * __ROUNDUP_OVERFLOW() does not verify @size is a power of 2.
+ *
+ * ROUNDUP_OVERFLOW() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
+ *
  * ROUNDUP_OVERFLOW_VAR() supports a variable reference as @size argument.
  * The macro asserts (in debug mode) that @size is a power of 2.
  */
+ #define __ROUNDUP_OVERFLOW(v, size, res) \
+	(__extension__({ \
+		typeof(*(res)) __roundup_tmp = 0; \
+		typeof(v) __roundup_mask = (typeof(v))(size) - 1; \
+		\
+		ADD_OVERFLOW((v), __roundup_mask, &__roundup_tmp) ? 1 : \
+			((void)(*(res) = __roundup_tmp & ~__roundup_mask), 0); \
+	}))
+
+#define ROUNDUP_OVERFLOW(v, size, res) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDUP_OVERFLOW((v), (size), (res)), \
+			       (void)0))
+
 #define ROUNDUP_OVERFLOW_VAR(v, size, res) \
 	(__extension__({ \
 		assert(IS_POWER_OF_TWO(size)); \
-		ROUNDUP_OVERFLOW((v), (size), (res)); \
+		__ROUNDUP_OVERFLOW((v), (size), (res)); \
 	}))
 
 /*
