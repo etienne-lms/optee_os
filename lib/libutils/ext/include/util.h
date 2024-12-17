@@ -152,20 +152,31 @@
 	(__roundup_x / (y)) + (__roundup_x & __roundup_mask ? 1 : 0); \
 }))
 
-/* Round down the even multiple of size, size has to be a power of 2 */
-#define ROUNDDOWN(v, size) ((v) & ~((__typeof__(v))(size) - 1))
-
 /*
+ * __ROUNDOWN(v, size)
+ * ROUNDDOWN(v, size)
  * ROUNDDOWN_VAR(v, size)
  * Round down value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * __ROUNDOWN() does not verify @size is a power of 2.
+ *
+ * ROUNDDOWN() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
  *
  * ROUNDDOWN_VAR() supports a variable reference as @size argument.
  * The macro asserts (in debug mode) that @size is a power of 2.
  */
+#define __ROUNDDOWN(v, size)	((v) & ~((__typeof__(v))(size) - 1)) \
+
+#define ROUNDDOWN(v, size) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDDOWN((v), (size)), \
+			       (void)0))
+
 #define ROUNDDOWN_VAR(v, size)	\
 	(__extension__({ \
 		assert(IS_POWER_OF_TWO(size)); \
-		ROUNDDOWN((v), (size)); \
+		__ROUNDDOWN((v), (size)); \
 	}))
 
 /*
