@@ -68,6 +68,14 @@
 	}))
 
 /*
+ * ROUNDUP2(v, size)
+ *
+ * Round up value @v to the even multiple of @size.
+ * @size can have any value.
+ */
+#define ROUNDUP2(v, size)	((((v) + (size) - 1) / (size)) * (size))
+
+/*
  * Round up the even multiple of size and return if result overflow
  * output value range. Size has to be a power of 2.
  */
@@ -94,6 +102,27 @@
 	(__extension__({ \
 		assert(IS_POWER_OF_TWO(size)); \
 		ROUNDUP_OVERFLOW((v), (size), (res)); \
+	}))
+
+/*
+ * ROUNDUP_OVERFLOW2(v, size, res)
+ *
+ * Round up value @v to the even multiple of @size and return if result
+ * overflows the output value range pointed by @res. The rounded value is
+ * stored in the memory address pointed by @res.
+ * @size can have any value.
+ */
+#define ROUNDUP_OVERFLOW2(v, size, res) \
+	(__extension__({ \
+		typeof(*(res)) __roundup_tmp = 0; \
+		typeof(v) __roundup_mod = 0; \
+		typeof(v) __roundup_add = 0; \
+		\
+		__roundup_mod = (v) % (typeof(v))(size); \
+		if (__roundup_mod) \
+			__roundup_add = (typeof(v))(size) - __roundup_mod; \
+		ADD_OVERFLOW((v), __roundup_add, &__roundup_tmp) ? 1 : \
+			((void)(*(res) = __roundup_tmp), 0); \
 	}))
 
 /*
@@ -127,6 +156,14 @@
 		assert(IS_POWER_OF_TWO(size)); \
 		ROUNDDOWN((v), (size)); \
 	}))
+
+/*
+ * ROUNDDOWN2(v, size)
+
+ * Round down value @v to the even multiple of @size.
+ * @sizee can have any value.
+ */
+#define ROUNDDOWN2(v, size)	(((v) / (size)) * (size))
 
 /*
  * Round up the result of x / y to the nearest upper integer if result is not 
