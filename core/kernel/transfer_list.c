@@ -360,6 +360,7 @@ bool transfer_list_set_data_size(struct transfer_list_header *tl,
 	size_t gap = 0;
 	size_t mov_dis = 0;
 	size_t sz = 0;
+	size_t align = 0;
 
 	if (!tl || !tl_e)
 		return false;
@@ -380,6 +381,7 @@ bool transfer_list_set_data_size(struct transfer_list_header *tl,
 	    ROUNDUP_OVERFLOW(new_ev, TRANSFER_LIST_GRANULE, &new_ev))
 		return false;
 
+	align = TL_ALIGNMENT_FROM_ORDER(tl->alignment);
 	if (new_ev > old_ev) {
 		/*
 		 * Move distance should be rounded up to match the entry data
@@ -401,8 +403,7 @@ bool transfer_list_set_data_size(struct transfer_list_header *tl,
 		 * Move distance should be rounded down to match the entry data
 		 * alignment.
 		 */
-		mov_dis = ROUNDDOWN(old_ev - new_ev,
-				    TL_ALIGNMENT_FROM_ORDER(tl->alignment));
+		mov_dis = ROUNDDOWN2(old_ev - new_ev, align);
 		r_new_ev = old_ev - mov_dis;
 		tl->size -= mov_dis;
 	}
@@ -537,7 +538,7 @@ transfer_list_add_with_align(struct transfer_list_header *tl, uint16_t tag_id,
 		 * alignment. Fill the gap with an empty transfer entry as a
 		 * placeholder before adding the desired transfer entry
 		 */
-		new_tl_ev = ROUNDUP(ev, TL_ALIGNMENT_FROM_ORDER(alignment)) -
+		new_tl_ev = ROUNDUP2(ev, TL_ALIGNMENT_FROM_ORDER(alignment)) -
 			    sizeof(struct transfer_list_entry);
 		assert(new_tl_ev - tl_ev > sizeof(struct transfer_list_entry));
 		dummy_te_data_sz = new_tl_ev - tl_ev -

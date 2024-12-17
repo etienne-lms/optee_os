@@ -50,7 +50,8 @@ static void *mem_alloc(size_t size, uint8_t type)
 				     &alloc_size))
 			return NULL;
 
-		if (ROUNDUP_OVERFLOW(alloc_size, cacheline_size, &alloc_size))
+		if (ROUNDUP_OVERFLOW_VAR(alloc_size, cacheline_size,
+					 &alloc_size))
 			return NULL;
 
 		ptr = memalign(cacheline_size, alloc_size);
