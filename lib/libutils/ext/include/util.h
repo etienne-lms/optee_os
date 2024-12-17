@@ -50,22 +50,33 @@
 #endif
 
 #ifndef __ASSEMBLER__
-/* Round up the even multiple of size, size has to be a power of 2 */
-#define ROUNDUP(v, size) (((v) + ((__typeof__(v))(size) - 1)) & \
-			  ~((__typeof__(v))(size) - 1))
-
 /*
+ * __ROUNDUP(v, size)
+ * ROUNDUP(v, size)
  * ROUNDUP_VAR(v, size)
  * Round up value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * __ROUNDOWN() does not verify @size is a power of 2.
+ *
+ * ROUNDUP() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
  *
  * ROUNDUP_VAR() supports a variable reference as @size argument.
  * The macro asserts (in debug mode) that @size is a power of 2.
  */
+#define __ROUNDUP(v, size) \
+	(((v) + ((__typeof__(v))(size) - 1)) & ~((__typeof__(v))(size) - 1))
+
 #define ROUNDUP_VAR(v, size) \
 	(__extension__({ \
 		assert(IS_POWER_OF_TWO(size)); \
-		ROUNDUP((v), (size)); \
+		__ROUNDUP((v), (size)); \
 	}))
+
+#define ROUNDUP(v, size) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDUP((v), (size)), \
+			       (void)0))
 
 /*
  * ROUNDUP2(v, size)
