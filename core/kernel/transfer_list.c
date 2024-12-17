@@ -390,9 +390,7 @@ bool transfer_list_set_data_size(struct transfer_list_header *tl,
 		 * of TL
 		 */
 		mov_dis = new_ev - old_ev;
-		if (ROUNDUP_OVERFLOW(mov_dis,
-				     TL_ALIGNMENT_FROM_ORDER(tl->alignment),
-				     &mov_dis) ||
+		if (ROUNDUP_OVERFLOW_VAR(mov_dis, align, &mov_dis) ||
 		    tl->size + mov_dis > tl->max_size) {
 			return false;
 		}

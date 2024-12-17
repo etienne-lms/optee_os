@@ -75,7 +75,7 @@ static vaddr_t select_va_in_range(const struct vm_region *prev_reg,
 	if (ADD_OVERFLOW(prev_reg->va, prev_reg->size, &begin_va) ||
 	    ADD_OVERFLOW(begin_va, pad_begin, &begin_va) ||
 	    ADD_OVERFLOW(begin_va, pad, &begin_va) ||
-	    ROUNDUP_OVERFLOW(begin_va, granul, &begin_va))
+	    ROUNDUP_OVERFLOW_VAR(begin_va, granul, &begin_va))
 		return 0;
 
 	if (reg->va) {
@@ -97,7 +97,7 @@ static vaddr_t select_va_in_range(const struct vm_region *prev_reg,
 	if (ADD_OVERFLOW(begin_va, reg->size, &end_va) ||
 	    ADD_OVERFLOW(end_va, pad_end, &end_va) ||
 	    ADD_OVERFLOW(end_va, pad, &end_va) ||
-	    ROUNDUP_OVERFLOW(end_va, granul, &end_va))
+	    ROUNDUP_OVERFLOW_VAR(end_va, granul, &end_va))
 		return 0;
 
 	if (end_va <= next_reg->va) {

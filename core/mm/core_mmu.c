@@ -1320,7 +1320,7 @@ static bool assign_mem_va_dir(vaddr_t tee_ram_va, struct memory_map *mem_map,
 					return false;
 			}
 
-			if (ROUNDUP_OVERFLOW(va, map->region_size, &va))
+			if (ROUNDUP_OVERFLOW_VAR(va, map->region_size, &va))
 				return false;
 			/*
 			 * Make sure that va is aligned with pa for
