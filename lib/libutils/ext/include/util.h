@@ -9,6 +9,7 @@
 #include <inttypes.h>
 
 #ifndef __ASSEMBLER__
+#include <assert.h>
 #include <stddef.h>
 #endif
 
@@ -49,21 +50,104 @@
 #endif
 
 #ifndef __ASSEMBLER__
-/* Round up the even multiple of size, size has to be a multiple of 2 */
-#define ROUNDUP(v, size) (((v) + ((__typeof__(v))(size) - 1)) & \
-			  ~((__typeof__(v))(size) - 1))
+/*
+ * __ROUNDUP(v, size)
+ * ROUNDUP(v, size)
+ * ROUNDUP_VAR(v, size)
+ * Round up value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * __ROUNDOWN() does not verify @size is a power of 2.
+ *
+ * ROUNDUP() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
+ *
+ * ROUNDUP_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+#define __ROUNDUP(v, size) \
+	(((v) + ((__typeof__(v))(size) - 1)) & ~((__typeof__(v))(size) - 1))
 
-#define ROUNDUP_OVERFLOW(v, size, res) (__extension__({ \
-	typeof(*(res)) __roundup_tmp = 0; \
-	typeof(v) __roundup_mask = (typeof(v))(size) - 1; \
-	\
-	ADD_OVERFLOW((v), __roundup_mask, &__roundup_tmp) ? 1 : \
-		((void)(*(res) = __roundup_tmp & ~__roundup_mask), 0); \
-}))
+#define ROUNDUP_VAR(v, size) \
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		__ROUNDUP((v), (size)); \
+	}))
+
+#define ROUNDUP(v, size) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDUP((v), (size)), \
+			       (void)0))
+
+/*
+ * ROUNDUP2(v, size)
+ *
+ * Round up value @v to the even multiple of @size.
+ * @size can have any value.
+ */
+#define ROUNDUP2(v, size)	((((v) + (size) - 1) / (size)) * (size))
+
+/*
+ * __ROUNDUP_OVERFLOW(v, size)
+ * ROUNDUP_OVERFLOW(v, size)
+ * ROUNDUP_OVERFLOW_VAR(v, size)
+ *
+ * Round up value @v to the even multiple of @size and return if result
+ * overflows the output value range pointed by @res. The rounded value is
+ * stored in the memory address pointed by @res.
+ * @size must be a power of 2.
+ *
+ * __ROUNDUP_OVERFLOW() does not verify @size is a power of 2.
+ *
+ * ROUNDUP_OVERFLOW() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
+ *
+ * ROUNDUP_OVERFLOW_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+ #define __ROUNDUP_OVERFLOW(v, size, res) \
+	(__extension__({ \
+		typeof(*(res)) __roundup_tmp = 0; \
+		typeof(v) __roundup_mask = (typeof(v))(size) - 1; \
+		\
+		ADD_OVERFLOW((v), __roundup_mask, &__roundup_tmp) ? 1 : \
+			((void)(*(res) = __roundup_tmp & ~__roundup_mask), 0); \
+	}))
+
+#define ROUNDUP_OVERFLOW(v, size, res) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDUP_OVERFLOW((v), (size), (res)), \
+			       (void)0))
+
+#define ROUNDUP_OVERFLOW_VAR(v, size, res) \
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		__ROUNDUP_OVERFLOW((v), (size), (res)); \
+	}))
+
+/*
+ * ROUNDUP_OVERFLOW2(v, size, res)
+ *
+ * Round up value @v to the even multiple of @size and return if result
+ * overflows the output value range pointed by @res. The rounded value is
+ * stored in the memory address pointed by @res.
+ * @size can have any value.
+ */
+#define ROUNDUP_OVERFLOW2(v, size, res) \
+	(__extension__({ \
+		typeof(*(res)) __roundup_tmp = 0; \
+		typeof(v) __roundup_mod = 0; \
+		typeof(v) __roundup_add = 0; \
+		\
+		__roundup_mod = (v) % (typeof(v))(size); \
+		if (__roundup_mod) \
+			__roundup_add = (typeof(v))(size) - __roundup_mod; \
+		ADD_OVERFLOW((v), __roundup_add, &__roundup_tmp) ? 1 : \
+			((void)(*(res) = __roundup_tmp), 0); \
+	}))
 
 /*
  * Rounds up to the nearest multiple of y and then divides by y. Safe
- * against overflow, y has to be a multiple of 2.
+ * against overflow, y has to be a power of 2.
  *
  * This macro is intended to be used to convert from "number of bytes" to
  * "number of pages" or similar units. Example:
@@ -73,14 +157,47 @@
 	typeof(x) __roundup_x = (x); \
 	typeof(y) __roundup_mask = (typeof(x))(y) - 1; \
 	\
+	assert(IS_POWER_OF_TWO(y)); \
 	(__roundup_x / (y)) + (__roundup_x & __roundup_mask ? 1 : 0); \
 }))
 
-/* Round down the even multiple of size, size has to be a multiple of 2 */
-#define ROUNDDOWN(v, size) ((v) & ~((__typeof__(v))(size) - 1))
+/*
+ * __ROUNDOWN(v, size)
+ * ROUNDDOWN(v, size)
+ * ROUNDDOWN_VAR(v, size)
+ * Round down value @v to the even multiple of @size that shall be a power of 2.
+ *
+ * __ROUNDOWN() does not verify @size is a power of 2.
+ *
+ * ROUNDDOWN() requires a constant value as @size argument.
+ * If @size is not a power of 2, the macro evaluates as unexpected void.
+ *
+ * ROUNDDOWN_VAR() supports a variable reference as @size argument.
+ * The macro asserts (in debug mode) that @size is a power of 2.
+ */
+#define __ROUNDDOWN(v, size)	((v) & ~((__typeof__(v))(size) - 1)) \
+
+#define ROUNDDOWN(v, size) \
+	(__builtin_choose_expr(IS_POWER_OF_TWO((size)), \
+			       __ROUNDDOWN((v), (size)), \
+			       (void)0))
+
+#define ROUNDDOWN_VAR(v, size)	\
+	(__extension__({ \
+		assert(IS_POWER_OF_TWO(size)); \
+		__ROUNDDOWN((v), (size)); \
+	}))
 
 /*
- * Round up the result of x / y to the nearest upper integer if result is not 
+ * ROUNDDOWN2(v, size)
+
+ * Round down value @v to the even multiple of @size.
+ * @sizee can have any value.
+ */
+#define ROUNDDOWN2(v, size)	(((v) / (size)) * (size))
+
+/*
+ * Round up the result of x / y to the nearest upper integer if result is not
  * already an integer.
  */
 #define DIV_ROUND_UP(x, y) (((x) + (y) - 1) / (y))
@@ -90,11 +207,11 @@
 	(__extension__ ({ __typeof__(x) _x = (x); \
 	  __typeof__(y) _y = (y); \
 	  (_x + (_y / 2)) / _y; }))
-#else
+#else /* __ASSEMBLER__ */
 #define ROUNDUP(x, y)			((((x) + (y) - 1) / (y)) * (y))
-#define ROUNDDOWN(x, y)		(((x) / (y)) * (y))
+#define ROUNDDOWN(x, y)			(((x) / (y)) * (y))
 #define UDIV_ROUND_NEAREST(x, y)	(((x) + ((y) / 2)) / (y))
-#endif
+#endif /* __ASSEMBLER__ */
 
 /* x has to be of an unsigned type */
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & (~(x) + 1)) == (x)))
